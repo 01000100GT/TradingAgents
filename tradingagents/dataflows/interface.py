@@ -1,3 +1,10 @@
+"""
+该文件提供了各种数据流接口，用于获取金融市场数据、新闻和社交媒体数据，
+以及进行技术分析和基本面分析。它整合了来自Finnhub、Google News、Reddit、
+Yahoo Finance和SimFin的数据，并提供了数据处理和格式化功能，
+以支持交易代理的决策过程。
+"""
+
 from typing import Annotated, Dict
 from .reddit_utils import fetch_top_from_category
 from .yfin_utils import *
@@ -16,6 +23,9 @@ from openai import OpenAI
 from .config import get_config, set_config, DATA_DIR
 
 
+# DATA_DIR: 存储所有数据流生成的数据的目录。
+
+
 def get_finnhub_news(
     ticker: Annotated[
         str,
@@ -25,15 +35,15 @@ def get_finnhub_news(
     look_back_days: Annotated[int, "how many days to look back"],
 ):
     """
-    Retrieve news about a company within a time frame
+    检索公司在特定时间范围内的最新新闻
 
-    Args
-        ticker (str): ticker for the company you are interested in
-        start_date (str): Start date in yyyy-mm-dd format
-        end_date (str): End date in yyyy-mm-dd format
-    Returns
-        str: dataframe containing the news of the company in the time frame
+    参数:
+        ticker (str): 感兴趣公司的股票代码，例如"AAPL"、"TSM"等。
+        curr_date (str): 当前日期，格式为 yyyy-mm-dd。
+        look_back_days (int): 回溯天数。
 
+    返回:
+        str: 包含指定时间范围内公司新闻的数据字符串。
     """
 
     start_date = datetime.strptime(curr_date, "%Y-%m-%d")
@@ -67,12 +77,15 @@ def get_finnhub_company_insider_sentiment(
     look_back_days: Annotated[int, "number of days to look back"],
 ):
     """
-    Retrieve insider sentiment about a company (retrieved from public SEC information) for the past 15 days
-    Args:
-        ticker (str): ticker symbol of the company
-        curr_date (str): current date you are trading on, yyyy-mm-dd
-    Returns:
-        str: a report of the sentiment in the past 15 days starting at curr_date
+    检索公司（从公开 SEC 信息中获取）在过去指定天数的内部人情绪。
+
+    参数:
+        ticker (str): 公司股票代码。
+        curr_date (str): 当前交易日期，格式为 yyyy-mm-dd。
+        look_back_days (int): 回溯天数。
+
+    返回:
+        str: 从 curr_date 开始的过去指定天数的情绪报告。
     """
 
     date_obj = datetime.strptime(curr_date, "%Y-%m-%d")
@@ -108,12 +121,15 @@ def get_finnhub_company_insider_transactions(
     look_back_days: Annotated[int, "how many days to look back"],
 ):
     """
-    Retrieve insider transcaction information about a company (retrieved from public SEC information) for the past 15 days
-    Args:
-        ticker (str): ticker symbol of the company
-        curr_date (str): current date you are trading at, yyyy-mm-dd
-    Returns:
-        str: a report of the company's insider transaction/trading informtaion in the past 15 days
+    检索公司（从公开 SEC 信息中获取）在过去指定天数的内部人交易信息。
+
+    参数:
+        ticker (str): 公司股票代码。
+        curr_date (str): 当前交易日期，格式为 yyyy-mm-dd。
+        look_back_days (int): 回溯天数。
+
+    返回:
+        str: 包含公司过去指定天数内部人交易/交易信息的报告。
     """
 
     date_obj = datetime.strptime(curr_date, "%Y-%m-%d")
@@ -149,6 +165,17 @@ def get_simfin_balance_sheet(
     ],
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
 ):
+    """
+    获取公司在给定日期的SimFin资产负债表。
+
+    参数:
+        ticker (str): 股票代码。
+        freq (str): 报告频率，可以是 'annual'（年度）或 'quarterly'（季度）。
+        curr_date (str): 当前交易日期，格式为 yyyy-mm-dd。
+
+    返回:
+        str: 公司最新的资产负债表数据。如果在此日期之前没有可用的报告，则返回空字符串。
+    """
     data_path = os.path.join(
         DATA_DIR,
         "fundamental_data",
@@ -160,25 +187,25 @@ def get_simfin_balance_sheet(
     )
     df = pd.read_csv(data_path, sep=";")
 
-    # Convert date strings to datetime objects and remove any time components
-    df["Report Date"] = pd.to_datetime(df["Report Date"], utc=True).dt.normalize()
-    df["Publish Date"] = pd.to_datetime(df["Publish Date"], utc=True).dt.normalize()
+    # 将日期字符串转换为 datetime 对象并移除时间部分
+    df["Report Date"] = pd.to_datetime(df["Report Date"], utc=True).normalize()
+    df["Publish Date"] = pd.to_datetime(df["Publish Date"], utc=True).normalize()
 
-    # Convert the current date to datetime and normalize
+    # 将当前日期转换为 datetime 并标准化
     curr_date_dt = pd.to_datetime(curr_date, utc=True).normalize()
 
-    # Filter the DataFrame for the given ticker and for reports that were published on or before the current date
+    # 过滤 DataFrame，获取给定股票代码且发布日期在当前日期或之前的报告
     filtered_df = df[(df["Ticker"] == ticker) & (df["Publish Date"] <= curr_date_dt)]
 
-    # Check if there are any available reports; if not, return a notification
+    # 检查是否有可用的报告；如果没有，则返回通知
     if filtered_df.empty:
-        print("No balance sheet available before the given current date.")
+        print("在给定当前日期之前没有可用的资产负债表。")
         return ""
 
-    # Get the most recent balance sheet by selecting the row with the latest Publish Date
+    # 通过选择最新发布日期的行来获取最新的资产负债表
     latest_balance_sheet = filtered_df.loc[filtered_df["Publish Date"].idxmax()]
 
-    # drop the SimFinID column
+    # 丢弃 SimFinID 列
     latest_balance_sheet = latest_balance_sheet.drop("SimFinId")
 
     return (
@@ -196,6 +223,17 @@ def get_simfin_cashflow(
     ],
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
 ):
+    """
+    获取公司在给定日期的SimFin现金流量表。
+
+    参数:
+        ticker (str): 股票代码。
+        freq (str): 报告频率，可以是 'annual'（年度）或 'quarterly'（季度）。
+        curr_date (str): 当前交易日期，格式为 yyyy-mm-dd。
+
+    返回:
+        str: 公司最新的现金流量表数据。如果在此日期之前没有可用的报告，则返回空字符串。
+    """
     data_path = os.path.join(
         DATA_DIR,
         "fundamental_data",
@@ -207,25 +245,25 @@ def get_simfin_cashflow(
     )
     df = pd.read_csv(data_path, sep=";")
 
-    # Convert date strings to datetime objects and remove any time components
-    df["Report Date"] = pd.to_datetime(df["Report Date"], utc=True).dt.normalize()
-    df["Publish Date"] = pd.to_datetime(df["Publish Date"], utc=True).dt.normalize()
+    # 将日期字符串转换为 datetime 对象并移除时间部分
+    df["Report Date"] = pd.to_datetime(df["Report Date"], utc=True).normalize()
+    df["Publish Date"] = pd.to_datetime(df["Publish Date"], utc=True).normalize()
 
-    # Convert the current date to datetime and normalize
+    # 将当前日期转换为 datetime 并标准化
     curr_date_dt = pd.to_datetime(curr_date, utc=True).normalize()
 
-    # Filter the DataFrame for the given ticker and for reports that were published on or before the current date
+    # 过滤 DataFrame，获取给定股票代码且发布日期在当前日期或之前的报告
     filtered_df = df[(df["Ticker"] == ticker) & (df["Publish Date"] <= curr_date_dt)]
 
-    # Check if there are any available reports; if not, return a notification
+    # 检查是否有可用的报告；如果没有，则返回通知
     if filtered_df.empty:
-        print("No cash flow statement available before the given current date.")
+        print("在给定当前日期之前没有可用的现金流量表。")
         return ""
 
-    # Get the most recent cash flow statement by selecting the row with the latest Publish Date
+    # 通过选择最新发布日期的行来获取最新的现金流量表
     latest_cash_flow = filtered_df.loc[filtered_df["Publish Date"].idxmax()]
 
-    # drop the SimFinID column
+    # 丢弃 SimFinID 列
     latest_cash_flow = latest_cash_flow.drop("SimFinId")
 
     return (
@@ -243,6 +281,17 @@ def get_simfin_income_statements(
     ],
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
 ):
+    """
+    获取公司在给定日期的SimFin利润表。
+
+    参数:
+        ticker (str): 股票代码。
+        freq (str): 报告频率，可以是 'annual'（年度）或 'quarterly'（季度）。
+        curr_date (str): 当前交易日期，格式为 yyyy-mm-dd。
+
+    返回:
+        str: 公司最新的利润表数据。如果在此日期之前没有可用的报告，则返回空字符串。
+    """
     data_path = os.path.join(
         DATA_DIR,
         "fundamental_data",
@@ -254,25 +303,25 @@ def get_simfin_income_statements(
     )
     df = pd.read_csv(data_path, sep=";")
 
-    # Convert date strings to datetime objects and remove any time components
-    df["Report Date"] = pd.to_datetime(df["Report Date"], utc=True).dt.normalize()
-    df["Publish Date"] = pd.to_datetime(df["Publish Date"], utc=True).dt.normalize()
+    # 将日期字符串转换为 datetime 对象并移除时间部分
+    df["Report Date"] = pd.to_datetime(df["Report Date"], utc=True).normalize()
+    df["Publish Date"] = pd.to_datetime(df["Publish Date"], utc=True).normalize()
 
-    # Convert the current date to datetime and normalize
+    # 将当前日期转换为 datetime 并标准化
     curr_date_dt = pd.to_datetime(curr_date, utc=True).normalize()
 
-    # Filter the DataFrame for the given ticker and for reports that were published on or before the current date
+    # 过滤 DataFrame，获取给定股票代码且发布日期在当前日期或之前的报告
     filtered_df = df[(df["Ticker"] == ticker) & (df["Publish Date"] <= curr_date_dt)]
 
-    # Check if there are any available reports; if not, return a notification
+    # 检查是否有可用的报告；如果没有，则返回通知
     if filtered_df.empty:
-        print("No income statement available before the given current date.")
+        print("在给定当前日期之前没有可用的利润表。")
         return ""
 
-    # Get the most recent income statement by selecting the row with the latest Publish Date
+    # 通过选择最新发布日期的行来获取最新的利润表
     latest_income = filtered_df.loc[filtered_df["Publish Date"].idxmax()]
 
-    # drop the SimFinID column
+    # 丢弃 SimFinID 列
     latest_income = latest_income.drop("SimFinId")
 
     return (
@@ -287,10 +336,21 @@ def get_google_news(
     curr_date: Annotated[str, "Curr date in yyyy-mm-dd format"],
     look_back_days: Annotated[int, "how many days to look back"],
 ) -> str:
+    """
+    使用 Google News 检索新闻。
+
+    参数:
+        query (str): 搜索查询。
+        curr_date (str): 当前日期，格式为 yyyy-mm-dd。
+        look_back_days (int): 回溯天数。
+
+    返回:
+        str: 格式化的新闻字符串。
+    """
     query = query.replace(" ", "+")
 
-    start_date = datetime.strptime(curr_date, "%Y-%m-%d")
-    before = start_date - relativedelta(days=look_back_days)
+    start_date_dt = datetime.strptime(curr_date, "%Y-%m-%d")
+    before = start_date_dt - relativedelta(days=look_back_days)
     before = before.strftime("%Y-%m-%d")
 
     news_results = getNewsData(query, before, curr_date)
@@ -314,35 +374,38 @@ def get_reddit_global_news(
     max_limit_per_day: Annotated[int, "Maximum number of news per day"],
 ) -> str:
     """
-    Retrieve the latest top reddit news
-    Args:
-        start_date: Start date in yyyy-mm-dd format
-        end_date: End date in yyyy-mm-dd format
-    Returns:
-        str: A formatted dataframe containing the latest news articles posts on reddit and meta information in these columns: "created_utc", "id", "title", "selftext", "score", "num_comments", "url"
+    检索 Reddit 上的最新热门全球新闻。
+
+    参数:
+        start_date (str): 开始日期，格式为 yyyy-mm-dd。
+        look_back_days (int): 回溯天数。
+        max_limit_per_day (int): 每天最大新闻数量。
+
+    返回:
+        str: 包含 Reddit 上最新新闻文章及其元信息的格式化字符串。
     """
 
-    start_date = datetime.strptime(start_date, "%Y-%m-%d")
-    before = start_date - relativedelta(days=look_back_days)
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    before = start_date_dt - relativedelta(days=look_back_days)
     before = before.strftime("%Y-%m-%d")
 
     posts = []
-    # iterate from start_date to end_date
-    curr_date = datetime.strptime(before, "%Y-%m-%d")
+    # 从 start_date 迭代到 end_date
+    curr_date_dt = datetime.strptime(before, "%Y-%m-%d")
 
-    total_iterations = (start_date - curr_date).days + 1
-    pbar = tqdm(desc=f"Getting Global News on {start_date}", total=total_iterations)
+    total_iterations = (start_date_dt - curr_date_dt).days + 1
+    pbar = tqdm(desc=f"正在获取 {start_date} 的全球新闻", total=total_iterations)
 
-    while curr_date <= start_date:
-        curr_date_str = curr_date.strftime("%Y-%m-%d")
+    while curr_date_dt <= start_date_dt:
+        curr_date_str = curr_date_dt.strftime("%Y-%m-%d")
         fetch_result = fetch_top_from_category(
             "global_news",
             curr_date_str,
             max_limit_per_day,
-            data_path=os.path.join(DATA_DIR, "reddit_data"),
+            data_path=os.path.join(str(DATA_DIR), "reddit_data"),
         )
         posts.extend(fetch_result)
-        curr_date += relativedelta(days=1)
+        curr_date_dt += relativedelta(days=1)
         pbar.update(1)
 
     pbar.close()
@@ -367,40 +430,43 @@ def get_reddit_company_news(
     max_limit_per_day: Annotated[int, "Maximum number of news per day"],
 ) -> str:
     """
-    Retrieve the latest top reddit news
-    Args:
-        ticker: ticker symbol of the company
-        start_date: Start date in yyyy-mm-dd format
-        end_date: End date in yyyy-mm-dd format
-    Returns:
-        str: A formatted dataframe containing the latest news articles posts on reddit and meta information in these columns: "created_utc", "id", "title", "selftext", "score", "num_comments", "url"
+    检索 Reddit 上公司的最新热门新闻。
+
+    参数:
+        ticker (str): 公司股票代码。
+        start_date (str): 开始日期，格式为 yyyy-mm-dd。
+        look_back_days (int): 回溯天数。
+        max_limit_per_day (int): 每天最大新闻数量。
+
+    返回:
+        str: 包含 Reddit 上最新新闻文章及其元信息的格式化字符串。
     """
 
-    start_date = datetime.strptime(start_date, "%Y-%m-%d")
-    before = start_date - relativedelta(days=look_back_days)
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    before = start_date_dt - relativedelta(days=look_back_days)
     before = before.strftime("%Y-%m-%d")
 
     posts = []
-    # iterate from start_date to end_date
-    curr_date = datetime.strptime(before, "%Y-%m-%d")
+    # 从 start_date 迭代到 end_date
+    curr_date_dt = datetime.strptime(before, "%Y-%m-%d")
 
-    total_iterations = (start_date - curr_date).days + 1
+    total_iterations = (start_date_dt - curr_date_dt).days + 1
     pbar = tqdm(
-        desc=f"Getting Company News for {ticker} on {start_date}",
+        desc=f"正在获取 {ticker} 在 {start_date} 的公司新闻",
         total=total_iterations,
     )
 
-    while curr_date <= start_date:
-        curr_date_str = curr_date.strftime("%Y-%m-%d")
+    while curr_date_dt <= start_date_dt:
+        curr_date_str = curr_date_dt.strftime("%Y-%m-%d")
         fetch_result = fetch_top_from_category(
             "company_news",
             curr_date_str,
             max_limit_per_day,
             ticker,
-            data_path=os.path.join(DATA_DIR, "reddit_data"),
+            data_path=os.path.join(str(DATA_DIR), "reddit_data"),
         )
         posts.extend(fetch_result)
-        curr_date += relativedelta(days=1)
+        curr_date_dt += relativedelta(days=1)
 
         pbar.update(1)
 
@@ -428,94 +494,107 @@ def get_stock_stats_indicators_window(
     look_back_days: Annotated[int, "how many days to look back"],
     online: Annotated[bool, "to fetch data online or offline"],
 ) -> str:
+    """
+    获取指定技术指标在特定时间窗口内的值。
+
+    参数:
+        symbol (str): 公司股票代码。
+        indicator (str): 要获取分析和报告的技术指标。
+        curr_date (str): 当前交易日期，格式为 YYYY-mm-dd。
+        look_back_days (int): 回溯天数。
+        online (bool): 是否在线获取数据。
+
+    返回:
+        str: 包含指定技术指标在时间窗口内值的报告。
+    """
 
     best_ind_params = {
-        # Moving Averages
+        # 移动平均线
         "close_50_sma": (
-            "50 SMA: A medium-term trend indicator. "
-            "Usage: Identify trend direction and serve as dynamic support/resistance. "
-            "Tips: It lags price; combine with faster indicators for timely signals."
+            "50 日简单移动平均线（50 SMA）：中期趋势指标。 "
+            "用途：识别趋势方向并作为动态支撑/阻力。 "
+            "提示：它滞后于价格；结合更快的指标以获取及时信号。"
         ),
         "close_200_sma": (
-            "200 SMA: A long-term trend benchmark. "
-            "Usage: Confirm overall market trend and identify golden/death cross setups. "
-            "Tips: It reacts slowly; best for strategic trend confirmation rather than frequent trading entries."
+            "200 日简单移动平均线（200 SMA）：长期趋势基准。 "
+            "用途：确认整体市场趋势并识别金叉/死叉形态。 "
+            "提示：它反应缓慢；最适合用于战略趋势确认而非频繁的交易入场。"
         ),
         "close_10_ema": (
-            "10 EMA: A responsive short-term average. "
-            "Usage: Capture quick shifts in momentum and potential entry points. "
-            "Tips: Prone to noise in choppy markets; use alongside longer averages for filtering false signals."
+            "10 日指数移动平均线（10 EMA）：响应式短期平均线。 "
+            "用途：捕捉动量的快速变化和潜在的入场点。 "
+            "提示：在震荡市场中容易出现噪音；与较长的平均线一起使用以过滤假信号。"
         ),
-        # MACD Related
+        # MACD 相关
         "macd": (
-            "MACD: Computes momentum via differences of EMAs. "
-            "Usage: Look for crossovers and divergence as signals of trend changes. "
-            "Tips: Confirm with other indicators in low-volatility or sideways markets."
+            "MACD：通过 EMA 差异计算动量。 "
+            "用途：寻找交叉和背离作为趋势变化的信号。 "
+            "提示：在低波动或横盘市场中与其他指标结合确认。"
         ),
         "macds": (
-            "MACD Signal: An EMA smoothing of the MACD line. "
-            "Usage: Use crossovers with the MACD line to trigger trades. "
-            "Tips: Should be part of a broader strategy to avoid false positives."
+            "MACD 信号线：MACD 线的 EMA 平滑。 "
+            "用途：使用与 MACD 线的交叉来触发交易。 "
+            "提示：应作为更广泛策略的一部分，以避免假阳性。"
         ),
         "macdh": (
-            "MACD Histogram: Shows the gap between the MACD line and its signal. "
-            "Usage: Visualize momentum strength and spot divergence early. "
-            "Tips: Can be volatile; complement with additional filters in fast-moving markets."
+            "MACD 柱状图：显示 MACD 线与其信号线之间的差距。 "
+            "用途：可视化动量强度并及早发现背离。 "
+            "提示：可能波动较大；在快速变化的市场中补充额外的过滤器。"
         ),
-        # Momentum Indicators
+        # 动量指标
         "rsi": (
-            "RSI: Measures momentum to flag overbought/oversold conditions. "
-            "Usage: Apply 70/30 thresholds and watch for divergence to signal reversals. "
-            "Tips: In strong trends, RSI may remain extreme; always cross-check with trend analysis."
+            "RSI：衡量动量以标记超买/超卖情况。 "
+            "用途：应用 70/30 阈值并观察背离以发出反转信号。 "
+            "提示：在强劲趋势中，RSI 可能保持极端；始终与趋势分析交叉检查。"
         ),
-        # Volatility Indicators
+        # 波动率指标
         "boll": (
-            "Bollinger Middle: A 20 SMA serving as the basis for Bollinger Bands. "
-            "Usage: Acts as a dynamic benchmark for price movement. "
-            "Tips: Combine with the upper and lower bands to effectively spot breakouts or reversals."
+            "布林带中轨：作为布林带基础的 20 日简单移动平均线。 "
+            "用途：作为价格波动的动态基准。 "
+            "提示：与上轨和下轨结合使用，有效发现突破或反转。"
         ),
         "boll_ub": (
-            "Bollinger Upper Band: Typically 2 standard deviations above the middle line. "
-            "Usage: Signals potential overbought conditions and breakout zones. "
-            "Tips: Confirm signals with other tools; prices may ride the band in strong trends."
+            "布林带上轨：通常在中线以上 2 个标准差。 "
+            "用途：表示潜在的超买情况和突破区域。 "
+            "提示：使用其他工具确认信号；价格在强劲趋势中可能沿着布林带运行。"
         ),
         "boll_lb": (
-            "Bollinger Lower Band: Typically 2 standard deviations below the middle line. "
-            "Usage: Indicates potential oversold conditions. "
-            "Tips: Use additional analysis to avoid false reversal signals."
+            "布林带下轨：通常在中线以下 2 个标准差。 "
+            "用途：表示潜在的超卖情况。 "
+            "提示：使用额外分析以避免错误的逆转信号。"
         ),
         "atr": (
-            "ATR: Averages true range to measure volatility. "
-            "Usage: Set stop-loss levels and adjust position sizes based on current market volatility. "
-            "Tips: It's a reactive measure, so use it as part of a broader risk management strategy."
+            "ATR：平均真实波动范围，衡量波动性。 "
+            "用途：根据当前市场波动性设置止损水平和调整头寸规模。 "
+            "提示：它是一种反应性指标，因此将其作为更广泛风险管理策略的一部分。"
         ),
-        # Volume-Based Indicators
+        # 成交量指标
         "vwma": (
-            "VWMA: A moving average weighted by volume. "
-            "Usage: Confirm trends by integrating price action with volume data. "
-            "Tips: Watch for skewed results from volume spikes; use in combination with other volume analyses."
+            "VWMA：成交量加权移动平均线。 "
+            "用途：通过整合价格行为和成交量数据来确认趋势。 "
+            "提示：注意成交量飙升导致的倾斜结果；结合其他成交量分析一起使用。"
         ),
         "mfi": (
-            "MFI: The Money Flow Index is a momentum indicator that uses both price and volume to measure buying and selling pressure. "
-            "Usage: Identify overbought (>80) or oversold (<20) conditions and confirm the strength of trends or reversals. "
-            "Tips: Use alongside RSI or MACD to confirm signals; divergence between price and MFI can indicate potential reversals."
+            "MFI：资金流量指标是一种动量指标，同时使用价格和成交量来衡量买卖压力。 "
+            "用途：识别超买（>80）或超卖（<20）情况，并确认趋势或反转的强度。 "
+            "提示：与 RSI 或 MACD 一起使用以确认信号；价格和 MFI 之间的背离可能预示着潜在的反转。"
         ),
     }
 
     if indicator not in best_ind_params:
         raise ValueError(
-            f"Indicator {indicator} is not supported. Please choose from: {list(best_ind_params.keys())}"
+            f"指标 {indicator} 不受支持。请从以下选项中选择：{list(best_ind_params.keys())}"
         )
 
     end_date = curr_date
-    curr_date = datetime.strptime(curr_date, "%Y-%m-%d")
-    before = curr_date - relativedelta(days=look_back_days)
+    curr_date_dt = datetime.strptime(curr_date, "%Y-%m-%d")
+    before_dt = curr_date_dt - relativedelta(days=look_back_days)
 
     if not online:
-        # read from YFin data
+        # 从 YFin 数据读取
         data = pd.read_csv(
             os.path.join(
-                DATA_DIR,
+                str(DATA_DIR),
                 f"market_data/price_data/{symbol}-YFin-data-2015-01-01-2025-03-25.csv",
             )
         )
@@ -523,33 +602,35 @@ def get_stock_stats_indicators_window(
         dates_in_df = data["Date"].astype(str).str[:10]
 
         ind_string = ""
-        while curr_date >= before:
-            # only do the trading dates
-            if curr_date.strftime("%Y-%m-%d") in dates_in_df.values:
+        while curr_date_dt >= before_dt:
+            # 只处理交易日期
+            if curr_date_dt.strftime("%Y-%m-%d") in dates_in_df.values:
                 indicator_value = get_stockstats_indicator(
-                    symbol, indicator, curr_date.strftime("%Y-%m-%d"), online
+                    symbol, indicator, curr_date_dt.strftime("%Y-%m-%d"), online
                 )
 
-                ind_string += f"{curr_date.strftime('%Y-%m-%d')}: {indicator_value}\n"
+                ind_string += (
+                    f"{curr_date_dt.strftime('%Y-%m-%d')}: {indicator_value}\n"
+                )
 
-            curr_date = curr_date - relativedelta(days=1)
+            curr_date_dt = curr_date_dt - relativedelta(days=1)
     else:
-        # online gathering
+        # 在线获取
         ind_string = ""
-        while curr_date >= before:
+        while curr_date_dt >= before_dt:
             indicator_value = get_stockstats_indicator(
-                symbol, indicator, curr_date.strftime("%Y-%m-%d"), online
+                symbol, indicator, curr_date_dt.strftime("%Y-%m-%d"), online
             )
 
-            ind_string += f"{curr_date.strftime('%Y-%m-%d')}: {indicator_value}\n"
+            ind_string += f"{curr_date_dt.strftime('%Y-%m-%d')}: {indicator_value}\n"
 
-            curr_date = curr_date - relativedelta(days=1)
+            curr_date_dt = curr_date_dt - relativedelta(days=1)
 
     result_str = (
-        f"## {indicator} values from {before.strftime('%Y-%m-%d')} to {end_date}:\n\n"
+        f"## {indicator} 值从 {before_dt.strftime('%Y-%m-%d')} 到 {end_date}:\n\n"
         + ind_string
         + "\n\n"
-        + best_ind_params.get(indicator, "No description available.")
+        + best_ind_params.get(indicator, "无可用描述。")
     )
 
     return result_str
@@ -563,22 +644,32 @@ def get_stockstats_indicator(
     ],
     online: Annotated[bool, "to fetch data online or offline"],
 ) -> str:
+    """
+    获取指定技术指标在给定日期的值。
 
-    curr_date = datetime.strptime(curr_date, "%Y-%m-%d")
-    curr_date = curr_date.strftime("%Y-%m-%d")
+    参数:
+        symbol (str): 公司股票代码。
+        indicator (str): 要获取分析和报告的技术指标。
+        curr_date (str): 当前交易日期，格式为 YYYY-mm-dd。
+        online (bool): 是否在线获取数据。
+
+    返回:
+        str: 指定技术指标的值。如果获取数据失败，则返回空字符串。
+    """
+
+    curr_date_dt = datetime.strptime(curr_date, "%Y-%m-%d")
+    curr_date_str = curr_date_dt.strftime("%Y-%m-%d")
 
     try:
         indicator_value = StockstatsUtils.get_stock_stats(
             symbol,
             indicator,
-            curr_date,
-            os.path.join(DATA_DIR, "market_data", "price_data"),
+            curr_date_str,
+            os.path.join(str(DATA_DIR), "market_data", "price_data"),
             online=online,
         )
     except Exception as e:
-        print(
-            f"Error getting stockstats indicator data for indicator {indicator} on {curr_date}: {e}"
-        )
+        print(f"获取指标 {indicator} 在 {curr_date} 的 stockstats 指标数据时出错: {e}")
         return ""
 
     return str(indicator_value)
@@ -589,15 +680,26 @@ def get_YFin_data_window(
     curr_date: Annotated[str, "Start date in yyyy-mm-dd format"],
     look_back_days: Annotated[int, "how many days to look back"],
 ) -> str:
-    # calculate past days
+    """
+    获取指定股票在特定时间窗口内的 Yahoo Finance 市场数据（离线）。
+
+    参数:
+        symbol (str): 公司股票代码。
+        curr_date (str): 当前日期，格式为 yyyy-mm-dd。
+        look_back_days (int): 回溯天数。
+
+    返回:
+        str: 包含指定时间范围内股票原始市场数据的字符串。
+    """
+    # 计算过去天数
     date_obj = datetime.strptime(curr_date, "%Y-%m-%d")
     before = date_obj - relativedelta(days=look_back_days)
     start_date = before.strftime("%Y-%m-%d")
 
-    # read in data
+    # 读取数据
     data = pd.read_csv(
         os.path.join(
-            DATA_DIR,
+            str(DATA_DIR),
             f"market_data/price_data/{symbol}-YFin-data-2015-01-01-2025-03-25.csv",
         )
     )
@@ -630,6 +732,17 @@ def get_YFin_data_online(
     start_date: Annotated[str, "Start date in yyyy-mm-dd format"],
     end_date: Annotated[str, "Start date in yyyy-mm-dd format"],
 ):
+    """
+    在线获取指定股票在特定日期范围内的 Yahoo Finance 市场数据。
+
+    参数:
+        symbol (str): 公司股票代码。
+        start_date (str): 开始日期，格式为 yyyy-mm-dd。
+        end_date (str): 结束日期，格式为 yyyy-mm-dd。
+
+    返回:
+        str: 包含指定日期范围内股票市场数据的 CSV 格式字符串。
+    """
 
     datetime.strptime(start_date, "%Y-%m-%d")
     datetime.strptime(end_date, "%Y-%m-%d")
@@ -672,17 +785,28 @@ def get_YFin_data(
     start_date: Annotated[str, "Start date in yyyy-mm-dd format"],
     end_date: Annotated[str, "Start date in yyyy-mm-dd format"],
 ) -> str:
+    """
+    获取指定股票在特定日期范围内的 Yahoo Finance 市场数据（离线）。
+
+    参数:
+        symbol (str): 公司股票代码。
+        start_date (str): 开始日期，格式为 yyyy-mm-dd。
+        end_date (str): 结束日期，格式为 yyyy-mm-dd。
+
+    返回:
+        pd.DataFrame: 包含指定日期范围内股票市场数据的 DataFrame。
+    """
     # read in data
     data = pd.read_csv(
         os.path.join(
-            DATA_DIR,
+            str(DATA_DIR),
             f"market_data/price_data/{symbol}-YFin-data-2015-01-01-2025-03-25.csv",
         )
     )
 
     if end_date > "2025-03-25":
         raise Exception(
-            f"Get_YFin_Data: {end_date} is outside of the data range of 2015-01-01 to 2025-03-25"
+            f"Get_YFin_Data: {end_date} 超出数据范围 2015-01-01 到 2025-03-25"
         )
 
     # Extract just the date part for comparison
@@ -699,10 +823,25 @@ def get_YFin_data(
     # remove the index from the dataframe
     filtered_data = filtered_data.reset_index(drop=True)
 
-    return filtered_data
+    with pd.option_context(
+        "display.max_rows", None, "display.max_columns", None, "display.width", None
+    ):
+        df_string = filtered_data.to_string()
+
+    return df_string
 
 
 def get_stock_news_openai(ticker, curr_date):
+    """
+    使用 OpenAI 搜索指定股票在特定日期范围内的社交媒体新闻。
+
+    参数:
+        ticker: 股票代码。
+        curr_date: 当前日期。
+
+    返回:
+        str: 社交媒体新闻报告。
+    """
     client = OpenAI()
 
     response = client.responses.create(
@@ -737,6 +876,15 @@ def get_stock_news_openai(ticker, curr_date):
 
 
 def get_global_news_openai(curr_date):
+    """
+    使用 OpenAI 搜索指定日期范围内的全球或宏观经济新闻。
+
+    参数:
+        curr_date: 当前日期。
+
+    返回:
+        str: 全球或宏观经济新闻报告。
+    """
     client = OpenAI()
 
     response = client.responses.create(
@@ -771,6 +919,16 @@ def get_global_news_openai(curr_date):
 
 
 def get_fundamentals_openai(ticker, curr_date):
+    """
+    使用 OpenAI 搜索指定股票在特定日期范围内的基本面讨论。
+
+    参数:
+        ticker: 股票代码。
+        curr_date: 当前日期。
+
+    返回:
+        str: 基本面讨论报告。
+    """
     client = OpenAI()
 
     response = client.responses.create(

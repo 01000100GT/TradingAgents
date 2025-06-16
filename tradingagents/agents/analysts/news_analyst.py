@@ -1,9 +1,12 @@
+# 这个文件定义了新闻分析师，负责分析近期新闻和市场趋势。
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import time
 import json
 
 
+# 创建新闻分析师的节点
 def create_news_analyst(llm, toolkit):
+    # 新闻分析师节点函数
     def news_analyst_node(state):
         current_date = state["trade_date"]
         ticker = state["company_of_interest"]
@@ -17,11 +20,13 @@ def create_news_analyst(llm, toolkit):
                 toolkit.get_google_news,
             ]
 
+        # 系统消息，定义分析师的角色和任务
         system_message = (
             "You are a news researcher tasked with analyzing recent news and trends over the past week. Please write a comprehensive report of the current state of the world that is relevant for trading and macroeconomics. Look at news from EODHD, and finnhub to be comprehensive. Do not simply state the trends are mixed, provide detailed and finegrained analysis and insights that may help traders make decisions."
             + """ Make sure to append a Makrdown table at the end of the report to organize key points in the report, organized and easy to read."""
         )
 
+        # 创建聊天提示模板
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
@@ -44,7 +49,9 @@ def create_news_analyst(llm, toolkit):
         prompt = prompt.partial(current_date=current_date)
         prompt = prompt.partial(ticker=ticker)
 
+        # 创建链
         chain = prompt | llm.bind_tools(tools)
+        # 调用链获取结果
         result = chain.invoke(state["messages"])
 
         return {

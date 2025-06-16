@@ -1,9 +1,12 @@
+# 这个文件定义了基本面分析师，负责收集和分析公司的基本面信息。
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import time
 import json
 
 
+# 创建基本面分析师的节点
 def create_fundamentals_analyst(llm, toolkit):
+    # 基本面分析师节点函数
     def fundamentals_analyst_node(state):
         current_date = state["trade_date"]
         ticker = state["company_of_interest"]
@@ -20,11 +23,13 @@ def create_fundamentals_analyst(llm, toolkit):
                 toolkit.get_simfin_income_stmt,
             ]
 
+        # 系统消息，定义分析师的角色和任务
         system_message = (
             "You are a researcher tasked with analyzing fundamental information over the past week about a company. Please write a comprehensive report of the company's fundamental information such as financial documents, company profile, basic company financials, company financial history, insider sentiment and insider transactions to gain a full view of the company's fundamental information to inform traders. Make sure to include as much detail as possible. Do not simply state the trends are mixed, provide detailed and finegrained analysis and insights that may help traders make decisions."
             + " Make sure to append a Makrdown table at the end of the report to organize key points in the report, organized and easy to read.",
         )
 
+        # 创建聊天提示模板
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
@@ -47,8 +52,10 @@ def create_fundamentals_analyst(llm, toolkit):
         prompt = prompt.partial(current_date=current_date)
         prompt = prompt.partial(ticker=ticker)
 
+        # 创建链
         chain = prompt | llm.bind_tools(tools)
 
+        # 调用链获取结果
         result = chain.invoke(state["messages"])
 
         return {

@@ -1,10 +1,13 @@
+# 这个文件定义了市场分析师，负责分析金融市场和选择相关指标。
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import time
 import json
 
 
+# 创建市场分析师的节点
 def create_market_analyst(llm, toolkit):
 
+    # 市场分析师节点函数
     def market_analyst_node(state):
         current_date = state["trade_date"]
         ticker = state["company_of_interest"]
@@ -21,6 +24,7 @@ def create_market_analyst(llm, toolkit):
                 toolkit.get_stockstats_indicators_report,
             ]
 
+        # 系统消息，定义分析师的角色和任务
         system_message = (
             """You are a trading assistant tasked with analyzing financial markets. Your role is to select the **most relevant indicators** for a given market condition or trading strategy from the following list. The goal is to choose up to **8 indicators** that provide complementary insights without redundancy. Categories and each category's indicators are:
 
@@ -50,6 +54,7 @@ Volume-Based Indicators:
             + """ Make sure to append a Markdown table at the end of the report to organize key points in the report, organized and easy to read."""
         )
 
+        # 创建聊天提示模板
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
@@ -72,8 +77,10 @@ Volume-Based Indicators:
         prompt = prompt.partial(current_date=current_date)
         prompt = prompt.partial(ticker=ticker)
 
+        # 创建链
         chain = prompt | llm.bind_tools(tools)
 
+        # 调用链获取结果
         result = chain.invoke(state["messages"])
 
         return {

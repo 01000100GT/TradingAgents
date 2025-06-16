@@ -1,3 +1,7 @@
+# stockstats_utils.py
+#
+# 该文件提供了一个工具类 `StockstatsUtils`，用于获取和处理股票数据，并计算基于股票数据的量化指标。
+# 它支持从本地文件或通过在线工具（如 Yahoo Finance）获取数据。
 import pandas as pd
 import yfinance as yf
 from stockstats import wrap
@@ -7,24 +11,40 @@ from .config import get_config
 
 
 class StockstatsUtils:
+    """
+    提供用于获取股票统计数据的实用工具。
+    """
+
     @staticmethod
     def get_stock_stats(
-        symbol: Annotated[str, "ticker symbol for the company"],
-        indicator: Annotated[
-            str, "quantitative indicators based off of the stock data for the company"
-        ],
-        curr_date: Annotated[
-            str, "curr date for retrieving stock price data, YYYY-mm-dd"
-        ],
+        symbol: Annotated[str, "公司的股票代码"],
+        indicator: Annotated[str, "基于公司股票数据的量化指标"],
+        curr_date: Annotated[str, "用于检索股票价格数据的当前日期，格式为 YYYY-mm-dd"],
         data_dir: Annotated[
             str,
-            "directory where the stock data is stored.",
+            "存储股票数据的目录。",
         ],
         online: Annotated[
             bool,
-            "whether to use online tools to fetch data or offline tools. If True, will use online tools.",
+            "是否使用在线工具或离线工具获取数据。如果为 True，将使用在线工具。",
         ] = False,
     ):
+        """
+        获取指定股票代码和指标的股票统计数据。
+
+        Args:
+            symbol (str): 公司的股票代码。
+            indicator (str): 基于公司股票数据的量化指标。
+            curr_date (str): 用于检索股票价格数据的当前日期，格式为 YYYY-mm-dd。
+            data_dir (str): 存储股票数据的目录。
+            online (bool, optional): 是否使用在线工具获取数据。如果为 True，将使用在线工具。默认为 False。
+
+        Returns:
+            Union[float, str]: 指标值，如果不是交易日则返回 "N/A: Not a trading day (weekend or holiday)"。
+
+        Raises:
+            Exception: 如果未获取 Yahoo Finance 数据而 `online` 为 False。
+        """
         df = None
         data = None
 
@@ -38,9 +58,11 @@ class StockstatsUtils:
                 )
                 df = wrap(data)
             except FileNotFoundError:
-                raise Exception("Stockstats fail: Yahoo Finance data not fetched yet!")
+                raise Exception(
+                    "Stockstats fail: Yahoo Finance data not fetched yet!"
+                )  # Stockstats 失败：Yahoo Finance 数据尚未获取！
         else:
-            # Get today's date as YYYY-mm-dd to add to cache
+            # 将今天的日期获取为 YYYY-mm-dd 以添加到缓存
             today_date = pd.Timestamp.today()
             curr_date = pd.to_datetime(curr_date)
 
@@ -49,7 +71,7 @@ class StockstatsUtils:
             start_date = start_date.strftime("%Y-%m-%d")
             end_date = end_date.strftime("%Y-%m-%d")
 
-            # Get config and ensure cache directory exists
+            # 获取配置并确保缓存目录存在
             config = get_config()
             os.makedirs(config["data_cache_dir"], exist_ok=True)
 
@@ -77,11 +99,11 @@ class StockstatsUtils:
             df["Date"] = df["Date"].dt.strftime("%Y-%m-%d")
             curr_date = curr_date.strftime("%Y-%m-%d")
 
-        df[indicator]  # trigger stockstats to calculate the indicator
+        df[indicator]  # 触发 stockstats 计算指标
         matching_rows = df[df["Date"].str.startswith(curr_date)]
 
         if not matching_rows.empty:
             indicator_value = matching_rows[indicator].values[0]
             return indicator_value
         else:
-            return "N/A: Not a trading day (weekend or holiday)"
+            return "N/A: Not a trading day (weekend or holiday)"  # 不适用：非交易日（周末或节假日）

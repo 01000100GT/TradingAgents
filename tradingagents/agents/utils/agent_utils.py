@@ -1,3 +1,5 @@
+# 本文件包含了一系列工具函数，用于交易代理获取各种市场数据和金融信息。
+
 from langchain_core.messages import BaseMessage, HumanMessage, ToolMessage, AIMessage
 from typing import List
 from typing import Annotated
@@ -14,7 +16,9 @@ import tradingagents.dataflows.interface as interface
 from tradingagents.default_config import DEFAULT_CONFIG
 
 
+# 创建消息删除函数
 def create_msg_delete():
+    # 删除消息，防止消息历史溢出
     def delete_messages(state):
         """To prevent message history from overflowing, regularly clear message history after a stage of the pipeline is done"""
         messages = state["messages"]
@@ -23,25 +27,30 @@ def create_msg_delete():
     return delete_messages
 
 
+# 工具箱类，提供各种数据获取工具
 class Toolkit:
     _config = DEFAULT_CONFIG.copy()
 
     @classmethod
+    # 更新类级别的配置
     def update_config(cls, config):
         """Update the class-level configuration."""
         cls._config.update(config)
 
     @property
+    # 访问配置
     def config(self):
         """Access the configuration."""
         return self._config
 
+    # 初始化方法
     def __init__(self, config=None):
         if config:
             self.update_config(config)
 
     @staticmethod
     @tool
+    # 获取 Reddit 新闻
     def get_reddit_news(
         curr_date: Annotated[str, "Date you want to get news for in yyyy-mm-dd format"],
     ) -> str:
@@ -52,13 +61,14 @@ class Toolkit:
         Returns:
             str: A formatted dataframe containing the latest global news from Reddit in the specified time frame.
         """
-        
+
         global_news_result = interface.get_reddit_global_news(curr_date, 7, 5)
 
         return global_news_result
 
     @staticmethod
     @tool
+    # 获取 Finnhub 新闻
     def get_finnhub_news(
         ticker: Annotated[
             str,
@@ -91,6 +101,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 获取 Reddit 股票信息
     def get_reddit_stock_info(
         ticker: Annotated[
             str,
@@ -113,6 +124,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 获取 Yahoo Finance 数据
     def get_YFin_data(
         symbol: Annotated[str, "ticker symbol of the company"],
         start_date: Annotated[str, "Start date in yyyy-mm-dd format"],
@@ -134,6 +146,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 在线获取 Yahoo Finance 数据
     def get_YFin_data_online(
         symbol: Annotated[str, "ticker symbol of the company"],
         start_date: Annotated[str, "Start date in yyyy-mm-dd format"],
@@ -155,6 +168,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 获取股票统计指标报告
     def get_stockstats_indicators_report(
         symbol: Annotated[str, "ticker symbol of the company"],
         indicator: Annotated[
@@ -184,6 +198,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 在线获取股票统计指标报告
     def get_stockstats_indicators_report_online(
         symbol: Annotated[str, "ticker symbol of the company"],
         indicator: Annotated[
@@ -213,6 +228,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 获取 Finnhub 公司内部人士情绪
     def get_finnhub_company_insider_sentiment(
         ticker: Annotated[str, "ticker symbol for the company"],
         curr_date: Annotated[
@@ -237,6 +253,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 获取 Finnhub 公司内部人士交易
     def get_finnhub_company_insider_transactions(
         ticker: Annotated[str, "ticker symbol"],
         curr_date: Annotated[
@@ -261,6 +278,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 获取 Simfin 资产负债表
     def get_simfin_balance_sheet(
         ticker: Annotated[str, "ticker symbol"],
         freq: Annotated[
@@ -285,6 +303,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 获取 Simfin 现金流量表
     def get_simfin_cashflow(
         ticker: Annotated[str, "ticker symbol"],
         freq: Annotated[
@@ -309,6 +328,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 获取 Simfin 收入报表
     def get_simfin_income_stmt(
         ticker: Annotated[str, "ticker symbol"],
         freq: Annotated[
@@ -335,6 +355,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 获取 Google 新闻
     def get_google_news(
         query: Annotated[str, "Query to search with"],
         curr_date: Annotated[str, "Curr date in yyyy-mm-dd format"],
@@ -355,6 +376,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 使用 OpenAI 获取股票新闻
     def get_stock_news_openai(
         ticker: Annotated[str, "the company's ticker"],
         curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
@@ -374,6 +396,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 使用 OpenAI 获取全球新闻
     def get_global_news_openai(
         curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
     ):
@@ -391,6 +414,7 @@ class Toolkit:
 
     @staticmethod
     @tool
+    # 使用 OpenAI 获取基本面信息
     def get_fundamentals_openai(
         ticker: Annotated[str, "the company's ticker"],
         curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],

@@ -1,15 +1,20 @@
+# 本文件定义了金融情景记忆类，用于存储和检索过去的金融情景及其对应的投资建议。
+
 import chromadb
 from chromadb.config import Settings
 from openai import OpenAI
 import numpy as np
 
 
+# 金融情景记忆类
 class FinancialSituationMemory:
+    # 初始化方法
     def __init__(self, name):
         self.client = OpenAI()
         self.chroma_client = chromadb.Client(Settings(allow_reset=True))
         self.situation_collection = self.chroma_client.create_collection(name=name)
 
+    # 获取文本的嵌入向量
     def get_embedding(self, text):
         """Get OpenAI embedding for a text"""
         response = self.client.embeddings.create(
@@ -17,6 +22,7 @@ class FinancialSituationMemory:
         )
         return response.data[0].embedding
 
+    # 添加金融情景及对应建议
     def add_situations(self, situations_and_advice):
         """Add financial situations and their corresponding advice. Parameter is a list of tuples (situation, rec)"""
 
@@ -40,6 +46,7 @@ class FinancialSituationMemory:
             ids=ids,
         )
 
+    # 获取匹配的记忆
     def get_memories(self, current_situation, n_matches=1):
         """Find matching recommendations using OpenAI embeddings"""
         query_embedding = self.get_embedding(current_situation)
@@ -63,11 +70,12 @@ class FinancialSituationMemory:
         return matched_results
 
 
+# 当作为主程序运行时
 if __name__ == "__main__":
-    # Example usage
+    # 示例用法
     matcher = FinancialSituationMemory()
 
-    # Example data
+    # 示例数据
     example_data = [
         (
             "High inflation rate with rising interest rates and declining consumer spending",
@@ -87,10 +95,10 @@ if __name__ == "__main__":
         ),
     ]
 
-    # Add the example situations and recommendations
+    # 添加示例情景和建议
     matcher.add_situations(example_data)
 
-    # Example query
+    # 示例查询
     current_situation = """
     Market showing increased volatility in tech sector, with institutional investors 
     reducing positions and rising interest rates affecting growth stock valuations

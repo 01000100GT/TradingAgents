@@ -1,3 +1,8 @@
+# main.py
+# 这个文件是TradingAgents CLI应用程序的主入口点。
+# 它负责设置Rich库的显示布局，处理用户输入，
+# 并协调TradingAgentsGraph来执行金融市场分析。
+
 from typing import Optional
 import datetime
 import typer
@@ -23,8 +28,10 @@ from tradingagents.default_config import DEFAULT_CONFIG
 from cli.models import AnalystType
 from cli.utils import *
 
+# 控制台对象，用于Rich库的输出
 console = Console()
 
+# Typer应用程序实例
 app = typer.Typer(
     name="TradingAgents",
     help="TradingAgents CLI: Multi-Agents LLM Financial Trading Framework",
@@ -32,13 +39,18 @@ app = typer.Typer(
 )
 
 
-# Create a deque to store recent messages with a maximum length
+# 消息缓冲区类，用于存储最近的消息、工具调用和代理状态
 class MessageBuffer:
     def __init__(self, max_length=100):
+        # 存储消息的双端队列
         self.messages = deque(maxlen=max_length)
+        # 存储工具调用的双端队列
         self.tool_calls = deque(maxlen=max_length)
+        # 当前报告
         self.current_report = None
+        # 最终报告
         self.final_report = None  # Store the complete final report
+        # 代理状态字典
         self.agent_status = {
             # Analyst Team
             "Market Analyst": "pending",
@@ -58,7 +70,9 @@ class MessageBuffer:
             # Portfolio Management Team
             "Portfolio Manager": "pending",
         }
+        # 当前代理
         self.current_agent = None
+        # 报告部分字典
         self.report_sections = {
             "market_report": None,
             "sentiment_report": None,
@@ -69,24 +83,29 @@ class MessageBuffer:
             "final_trade_decision": None,
         }
 
+    # 添加消息到缓冲区
     def add_message(self, message_type, content):
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
         self.messages.append((timestamp, message_type, content))
 
+    # 添加工具调用到缓冲区
     def add_tool_call(self, tool_name, args):
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
         self.tool_calls.append((timestamp, tool_name, args))
 
+    # 更新代理状态
     def update_agent_status(self, agent, status):
         if agent in self.agent_status:
             self.agent_status[agent] = status
             self.current_agent = agent
 
+    # 更新报告部分
     def update_report_section(self, section_name, content):
         if section_name in self.report_sections:
             self.report_sections[section_name] = content
             self._update_current_report()
 
+    # 更新当前报告
     def _update_current_report(self):
         # For the panel display, only show the most recently updated section
         latest_section = None
@@ -116,6 +135,7 @@ class MessageBuffer:
         # Update the final complete report
         self._update_final_report()
 
+    # 更新最终报告
     def _update_final_report(self):
         report_parts = []
 
@@ -165,9 +185,11 @@ class MessageBuffer:
         self.final_report = "\n\n".join(report_parts) if report_parts else None
 
 
+# 消息缓冲区实例
 message_buffer = MessageBuffer()
 
 
+# 创建布局
 def create_layout():
     layout = Layout()
     layout.split_column(
@@ -184,6 +206,7 @@ def create_layout():
     return layout
 
 
+# 更新显示
 def update_display(layout, spinner_text=None):
     # Header with welcome message
     layout["header"].update(
@@ -355,10 +378,13 @@ def update_display(layout, spinner_text=None):
         )
 
     # Footer with statistics
+    # 工具调用次数
     tool_calls_count = len(message_buffer.tool_calls)
+    # LLM调用次数
     llm_calls_count = sum(
         1 for _, msg_type, _ in message_buffer.messages if msg_type == "Reasoning"
     )
+    # 生成报告次数
     reports_count = sum(
         1 for content in message_buffer.report_sections.values() if content is not None
     )
@@ -372,6 +398,7 @@ def update_display(layout, spinner_text=None):
     layout["footer"].update(Panel(stats_table, border_style="grey50"))
 
 
+# 获取用户选择
 def get_user_selections():
     """Get all user selections before starting the analysis display."""
     # Display ASCII art welcome message
@@ -412,6 +439,7 @@ def get_user_selections():
             "Step 1: Ticker Symbol", "Enter the ticker symbol to analyze", "SPY"
         )
     )
+    # 获取股票代码
     selected_ticker = get_ticker()
 
     # Step 2: Analysis date
@@ -423,6 +451,7 @@ def get_user_selections():
             default_date,
         )
     )
+    # 获取分析日期
     analysis_date = get_analysis_date()
 
     # Step 3: Select analysts
@@ -431,6 +460,7 @@ def get_user_selections():
             "Step 3: Analysts Team", "Select your LLM analyst agents for the analysis"
         )
     )
+    # 选择分析师
     selected_analysts = select_analysts()
     console.print(
         f"[green]Selected analysts:[/green] {', '.join(analyst.value for analyst in selected_analysts)}"
@@ -442,6 +472,7 @@ def get_user_selections():
             "Step 4: Research Depth", "Select your research depth level"
         )
     )
+    # 选择研究深度
     selected_research_depth = select_research_depth()
 
     # Step 5: Thinking agents
@@ -450,7 +481,9 @@ def get_user_selections():
             "Step 5: Thinking Agents", "Select your thinking agents for analysis"
         )
     )
+    # 选择浅层思考代理
     selected_shallow_thinker = select_shallow_thinking_agent()
+    # 选择深层思考代理
     selected_deep_thinker = select_deep_thinking_agent()
 
     return {
@@ -463,11 +496,13 @@ def get_user_selections():
     }
 
 
+# 获取股票代码
 def get_ticker():
     """Get ticker symbol from user input."""
     return typer.prompt("", default="SPY")
 
 
+# 获取分析日期
 def get_analysis_date():
     """Get the analysis date from user input."""
     while True:
@@ -487,6 +522,7 @@ def get_analysis_date():
             )
 
 
+# 显示完整报告
 def display_complete_report(final_state):
     """Display the complete analysis report with team-based panels."""
     console.print("\n[bold green]Complete Analysis Report[/bold green]\n")
@@ -677,6 +713,7 @@ def display_complete_report(final_state):
             )
 
 
+# 更新研究团队状态
 def update_research_team_status(status):
     """Update status for all research team members and trader."""
     research_team = ["Bull Researcher", "Bear Researcher", "Research Manager", "Trader"]
@@ -684,11 +721,14 @@ def update_research_team_status(status):
         message_buffer.update_agent_status(agent, status)
 
 
+# 运行分析
 def run_analysis():
     # First get all user selections
+    # 首先获取所有用户选择
     selections = get_user_selections()
 
     # Create config with selected research depth
+    # 根据选择的研究深度创建配置
     config = DEFAULT_CONFIG.copy()
     config["max_debate_rounds"] = selections["research_depth"]
     config["max_risk_discuss_rounds"] = selections["research_depth"]
@@ -696,18 +736,22 @@ def run_analysis():
     config["deep_think_llm"] = selections["deep_thinker"]
 
     # Initialize the graph
+    # 初始化图
     graph = TradingAgentsGraph(
         [analyst.value for analyst in selections["analysts"]], config=config, debug=True
     )
 
     # Now start the display layout
+    # 现在开始显示布局
     layout = create_layout()
 
     with Live(layout, refresh_per_second=4) as live:
         # Initial display
+        # 初始显示
         update_display(layout)
 
         # Add initial messages
+        # 添加初始消息
         message_buffer.add_message("System", f"Selected ticker: {selections['ticker']}")
         message_buffer.add_message(
             "System", f"Analysis date: {selections['analysis_date']}"
@@ -719,40 +763,48 @@ def run_analysis():
         update_display(layout)
 
         # Reset agent statuses
+        # 重置代理状态
         for agent in message_buffer.agent_status:
             message_buffer.update_agent_status(agent, "pending")
 
         # Reset report sections
+        # 重置报告部分
         for section in message_buffer.report_sections:
             message_buffer.report_sections[section] = None
         message_buffer.current_report = None
         message_buffer.final_report = None
 
         # Update agent status to in_progress for the first analyst
+        # 更新第一个分析师的代理状态为进行中
         first_analyst = f"{selections['analysts'][0].value.capitalize()} Analyst"
         message_buffer.update_agent_status(first_analyst, "in_progress")
         update_display(layout)
 
         # Create spinner text
+        # 创建加载文本
         spinner_text = (
             f"Analyzing {selections['ticker']} on {selections['analysis_date']}..."
         )
         update_display(layout, spinner_text)
 
         # Initialize state and get graph args
+        # 初始化状态并获取图参数
         init_agent_state = graph.propagator.create_initial_state(
             selections["ticker"], selections["analysis_date"]
         )
         args = graph.propagator.get_graph_args()
 
         # Stream the analysis
+        # 流式传输分析
         trace = []
         for chunk in graph.graph.stream(init_agent_state, **args):
             if len(chunk["messages"]) > 0:
                 # Get the last message from the chunk
+                # 获取块中的最后一条消息
                 last_message = chunk["messages"][-1]
 
                 # Extract message content and type
+                # 提取消息内容和类型
                 if hasattr(last_message, "content"):
                     content = last_message.content
                     msg_type = "Reasoning"
@@ -761,12 +813,15 @@ def run_analysis():
                     msg_type = "System"
 
                 # Add message to buffer
+                # 添加消息到缓冲区
                 message_buffer.add_message(msg_type, content)
 
                 # If it's a tool call, add it to tool calls
+                # 如果是工具调用，添加到工具调用中
                 if hasattr(last_message, "tool_calls"):
                     for tool_call in last_message.tool_calls:
                         # Handle both dictionary and object tool calls
+                        # 处理字典和对象工具调用
                         if isinstance(tool_call, dict):
                             message_buffer.add_tool_call(
                                 tool_call["name"], tool_call["args"]
@@ -775,6 +830,7 @@ def run_analysis():
                             message_buffer.add_tool_call(tool_call.name, tool_call.args)
 
                 # Update reports and agent status based on chunk content
+                # 根据块内容更新报告和代理状态
                 # Analyst Team Reports
                 if "market_report" in chunk and chunk["market_report"]:
                     message_buffer.update_report_section(
@@ -782,6 +838,7 @@ def run_analysis():
                     )
                     message_buffer.update_agent_status("Market Analyst", "completed")
                     # Set next analyst to in_progress
+                    # 将下一个分析师设置为进行中
                     if "social" in selections["analysts"]:
                         message_buffer.update_agent_status(
                             "Social Analyst", "in_progress"
@@ -793,6 +850,7 @@ def run_analysis():
                     )
                     message_buffer.update_agent_status("Social Analyst", "completed")
                     # Set next analyst to in_progress
+                    # 将下一个分析师设置为进行中
                     if "news" in selections["analysts"]:
                         message_buffer.update_agent_status(
                             "News Analyst", "in_progress"
@@ -804,6 +862,7 @@ def run_analysis():
                     )
                     message_buffer.update_agent_status("News Analyst", "completed")
                     # Set next analyst to in_progress
+                    # 将下一个分析师设置为进行中
                     if "fundamentals" in selections["analysts"]:
                         message_buffer.update_agent_status(
                             "Fundamentals Analyst", "in_progress"
@@ -817,9 +876,11 @@ def run_analysis():
                         "Fundamentals Analyst", "completed"
                     )
                     # Set all research team members to in_progress
+                    # 将所有研究团队成员设置为进行中
                     update_research_team_status("in_progress")
 
                 # Research Team - Handle Investment Debate State
+                # 研究团队 - 处理投资辩论状态
                 if (
                     "investment_debate_state" in chunk
                     and chunk["investment_debate_state"]
@@ -827,59 +888,73 @@ def run_analysis():
                     debate_state = chunk["investment_debate_state"]
 
                     # Update Bull Researcher status and report
+                    # 更新看涨研究员状态和报告
                     if "bull_history" in debate_state and debate_state["bull_history"]:
                         # Keep all research team members in progress
+                        # 保持所有研究团队成员进行中
                         update_research_team_status("in_progress")
                         # Extract latest bull response
+                        # 提取最新的看涨响应
                         bull_responses = debate_state["bull_history"].split("\n")
                         latest_bull = bull_responses[-1] if bull_responses else ""
                         if latest_bull:
                             message_buffer.add_message("Reasoning", latest_bull)
                             # Update research report with bull's latest analysis
+                            # 用看涨研究员的最新分析更新研究报告
                             message_buffer.update_report_section(
                                 "investment_plan",
                                 f"### Bull Researcher Analysis\n{latest_bull}",
                             )
 
                     # Update Bear Researcher status and report
+                    # 更新看跌研究员状态和报告
                     if "bear_history" in debate_state and debate_state["bear_history"]:
                         # Keep all research team members in progress
+                        # 保持所有研究团队成员进行中
                         update_research_team_status("in_progress")
                         # Extract latest bear response
+                        # 提取最新的看跌响应
                         bear_responses = debate_state["bear_history"].split("\n")
                         latest_bear = bear_responses[-1] if bear_responses else ""
                         if latest_bear:
                             message_buffer.add_message("Reasoning", latest_bear)
                             # Update research report with bear's latest analysis
+                            # 用看跌研究员的最新分析更新研究报告
                             message_buffer.update_report_section(
                                 "investment_plan",
                                 f"{message_buffer.report_sections['investment_plan']}\n\n### Bear Researcher Analysis\n{latest_bear}",
                             )
 
                     # Update Research Manager status and final decision
+                    # 更新研究经理状态和最终决定
                     if (
                         "judge_decision" in debate_state
                         and debate_state["judge_decision"]
                     ):
                         # Keep all research team members in progress until final decision
+                        # 保持所有研究团队成员进行中直到最终决定
                         update_research_team_status("in_progress")
                         message_buffer.add_message(
                             "Reasoning",
                             f"Research Manager: {debate_state['judge_decision']}",
                         )
                         # Update research report with final decision
+                        # 用最终决定更新研究报告
                         message_buffer.update_report_section(
                             "investment_plan",
                             f"{message_buffer.report_sections['investment_plan']}\n\n### Research Manager Decision\n{debate_state['judge_decision']}",
                         )
                         # Mark all research team members as completed
+                        # 将所有研究团队成员标记为已完成
                         update_research_team_status("completed")
                         # Set first risk analyst to in_progress
+                        # 将第一个风险分析师设置为进行中
                         message_buffer.update_agent_status(
                             "Risky Analyst", "in_progress"
                         )
 
                 # Trading Team
+                # 交易团队
                 if (
                     "trader_investment_plan" in chunk
                     and chunk["trader_investment_plan"]
@@ -888,13 +963,16 @@ def run_analysis():
                         "trader_investment_plan", chunk["trader_investment_plan"]
                     )
                     # Set first risk analyst to in_progress
+                    # 将第一个风险分析师设置为进行中
                     message_buffer.update_agent_status("Risky Analyst", "in_progress")
 
                 # Risk Management Team - Handle Risk Debate State
+                # 风险管理团队 - 处理风险辩论状态
                 if "risk_debate_state" in chunk and chunk["risk_debate_state"]:
                     risk_state = chunk["risk_debate_state"]
 
                     # Update Risky Analyst status and report
+                    # 更新风险分析师状态和报告
                     if (
                         "current_risky_response" in risk_state
                         and risk_state["current_risky_response"]
@@ -907,12 +985,14 @@ def run_analysis():
                             f"Risky Analyst: {risk_state['current_risky_response']}",
                         )
                         # Update risk report with risky analyst's latest analysis only
+                        # 仅用风险分析师的最新分析更新风险报告
                         message_buffer.update_report_section(
                             "final_trade_decision",
                             f"### Risky Analyst Analysis\n{risk_state['current_risky_response']}",
                         )
 
                     # Update Safe Analyst status and report
+                    # 更新安全分析师状态和报告
                     if (
                         "current_safe_response" in risk_state
                         and risk_state["current_safe_response"]
@@ -925,12 +1005,14 @@ def run_analysis():
                             f"Safe Analyst: {risk_state['current_safe_response']}",
                         )
                         # Update risk report with safe analyst's latest analysis only
+                        # 仅用安全分析师的最新分析更新风险报告
                         message_buffer.update_report_section(
                             "final_trade_decision",
                             f"### Safe Analyst Analysis\n{risk_state['current_safe_response']}",
                         )
 
                     # Update Neutral Analyst status and report
+                    # 更新中立分析师状态和报告
                     if (
                         "current_neutral_response" in risk_state
                         and risk_state["current_neutral_response"]
@@ -943,12 +1025,14 @@ def run_analysis():
                             f"Neutral Analyst: {risk_state['current_neutral_response']}",
                         )
                         # Update risk report with neutral analyst's latest analysis only
+                        # 仅用中立分析师的最新分析更新风险报告
                         message_buffer.update_report_section(
                             "final_trade_decision",
                             f"### Neutral Analyst Analysis\n{risk_state['current_neutral_response']}",
                         )
 
                     # Update Portfolio Manager status and final decision
+                    # 更新投资组合经理状态和最终决定
                     if "judge_decision" in risk_state and risk_state["judge_decision"]:
                         message_buffer.update_agent_status(
                             "Portfolio Manager", "in_progress"
@@ -958,11 +1042,13 @@ def run_analysis():
                             f"Portfolio Manager: {risk_state['judge_decision']}",
                         )
                         # Update risk report with final decision only
+                        # 仅用最终决定更新风险报告
                         message_buffer.update_report_section(
                             "final_trade_decision",
                             f"### Portfolio Manager Decision\n{risk_state['judge_decision']}",
                         )
                         # Mark risk analysts as completed
+                        # 将风险分析师标记为已完成
                         message_buffer.update_agent_status("Risky Analyst", "completed")
                         message_buffer.update_agent_status("Safe Analyst", "completed")
                         message_buffer.update_agent_status(
@@ -973,15 +1059,18 @@ def run_analysis():
                         )
 
                 # Update the display
+                # 更新显示
                 update_display(layout)
 
             trace.append(chunk)
 
         # Get final state and decision
+        # 获取最终状态和决定
         final_state = trace[-1]
         decision = graph.process_signal(final_state["final_trade_decision"])
 
         # Update all agent statuses to completed
+        # 将所有代理状态更新为已完成
         for agent in message_buffer.agent_status:
             message_buffer.update_agent_status(agent, "completed")
 
@@ -990,18 +1079,22 @@ def run_analysis():
         )
 
         # Update final report sections
+        # 更新最终报告部分
         for section in message_buffer.report_sections.keys():
             if section in final_state:
                 message_buffer.update_report_section(section, final_state[section])
 
         # Display the complete final report
+        # 显示完整的最终报告
         display_complete_report(final_state)
 
         update_display(layout)
 
 
+# Typer命令：分析
 @app.command()
 def analyze():
+    # 运行分析
     run_analysis()
 
 

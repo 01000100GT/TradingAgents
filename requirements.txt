@@ -22,3 +22,6 @@ redis
 chainlit
 rich
 questionary
+typer
+pydantic
+tenacity

@@ -1,51 +1,56 @@
-# TradingAgents/graph/reflection.py
+# tradingagents/graph/reflection.py
+# 本文件包含处理决策反思和更新内存的类。
 
 from typing import Dict, Any
 from langchain_openai import ChatOpenAI
 
 
+# 反思器类：处理决策反思和内存更新。
 class Reflector:
     """Handles reflection on decisions and updating memory."""
 
+    # 初始化反思器，传入一个快速思考的 LLM。
     def __init__(self, quick_thinking_llm: ChatOpenAI):
         """Initialize the reflector with an LLM."""
         self.quick_thinking_llm = quick_thinking_llm
         self.reflection_system_prompt = self._get_reflection_prompt()
 
+    # 获取用于反思的系统提示。
     def _get_reflection_prompt(self) -> str:
         """Get the system prompt for reflection."""
         return """
-You are an expert financial analyst tasked with reviewing trading decisions/analysis and providing a comprehensive, step-by-step analysis. 
-Your goal is to deliver detailed insights into investment decisions and highlight opportunities for improvement, adhering strictly to the following guidelines:
+你是一名专业的金融分析师，负责审查交易决策/分析，并提供全面的、分步的分析。
+你的目标是提供对投资决策的详细见解，并突出改进机会，严格遵守以下准则：
 
-1. Reasoning:
-   - For each trading decision, determine whether it was correct or incorrect. A correct decision results in an increase in returns, while an incorrect decision does the opposite.
-   - Analyze the contributing factors to each success or mistake. Consider:
-     - Market intelligence.
-     - Technical indicators.
-     - Technical signals.
-     - Price movement analysis.
-     - Overall market data analysis 
-     - News analysis.
-     - Social media and sentiment analysis.
-     - Fundamental data analysis.
-     - Weight the importance of each factor in the decision-making process.
+1. 推理：
+   - 对于每个交易决策，确定其是正确还是不正确。正确的决策会带来回报增加，而不正确的决策则相反。
+   - 分析导致每次成功或错误的因素。考虑：
+     - 市场情报。
+     - 技术指标。
+     - 技术信号。
+     - 价格走势分析。
+     - 整体市场数据分析
+     - 新闻分析。
+     - 社交媒体和情绪分析。
+     - 基本面数据分析。
+     - 权衡每个因素在决策过程中的重要性。
 
-2. Improvement:
-   - For any incorrect decisions, propose revisions to maximize returns.
-   - Provide a detailed list of corrective actions or improvements, including specific recommendations (e.g., changing a decision from HOLD to BUY on a particular date).
+2. 改进：
+   - 对于任何不正确的决策，提出修改建议以最大化回报。
+   - 提供纠正措施或改进的详细列表，包括具体建议（例如，在特定日期将决策从持有更改为买入）。
 
-3. Summary:
-   - Summarize the lessons learned from the successes and mistakes.
-   - Highlight how these lessons can be adapted for future trading scenarios and draw connections between similar situations to apply the knowledge gained.
+3. 总结：
+   - 总结从成功和错误中吸取的教训。
+   - 强调如何将这些教训应用于未来的交易场景，并联系类似情况以应用所学知识。
 
-4. Query:
-   - Extract key insights from the summary into a concise sentence of no more than 1000 tokens.
-   - Ensure the condensed sentence captures the essence of the lessons and reasoning for easy reference.
+4. 查询：
+   - 将摘要中的关键见解提取为不超过 1000 个标记的简洁句子。
+   - 确保精简后的句子捕捉到教训和推理的精髓，以便于参考。
 
-Adhere strictly to these instructions, and ensure your output is detailed, accurate, and actionable. You will also be given objective descriptions of the market from a price movements, technical indicator, news, and sentiment perspective to provide more context for your analysis.
+严格遵守这些说明，并确保你的输出详细、准确且可操作。还将为你提供客观的市场描述，包括价格走势、技术指标、新闻和情绪，以便为你的分析提供更多上下文。
 """
 
+    # 从状态中提取当前市场情况。
     def _extract_current_situation(self, current_state: Dict[str, Any]) -> str:
         """Extract the current market situation from the state."""
         curr_market_report = current_state["market_report"]
@@ -55,6 +60,7 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
 
         return f"{curr_market_report}\n\n{curr_sentiment_report}\n\n{curr_news_report}\n\n{curr_fundamentals_report}"
 
+    # 为特定组件生成反思。
     def _reflect_on_component(
         self, component_type: str, report: str, situation: str, returns_losses
     ) -> str:
@@ -70,6 +76,7 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
         result = self.quick_thinking_llm.invoke(messages).content
         return result
 
+    # 反思看涨研究员的分析并更新记忆。
     def reflect_bull_researcher(self, current_state, returns_losses, bull_memory):
         """Reflect on bull researcher's analysis and update memory."""
         situation = self._extract_current_situation(current_state)
@@ -80,6 +87,7 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
         )
         bull_memory.add_situations([(situation, result)])
 
+    # 反思看跌研究员的分析并更新记忆。
     def reflect_bear_researcher(self, current_state, returns_losses, bear_memory):
         """Reflect on bear researcher's analysis and update memory."""
         situation = self._extract_current_situation(current_state)
@@ -90,6 +98,7 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
         )
         bear_memory.add_situations([(situation, result)])
 
+    # 反思交易员的决策并更新记忆。
     def reflect_trader(self, current_state, returns_losses, trader_memory):
         """Reflect on trader's decision and update memory."""
         situation = self._extract_current_situation(current_state)
@@ -100,6 +109,7 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
         )
         trader_memory.add_situations([(situation, result)])
 
+    # 反思投资判断者的决策并更新记忆。
     def reflect_invest_judge(self, current_state, returns_losses, invest_judge_memory):
         """Reflect on investment judge's decision and update memory."""
         situation = self._extract_current_situation(current_state)
@@ -110,6 +120,7 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
         )
         invest_judge_memory.add_situations([(situation, result)])
 
+    # 反思风险管理者的决策并更新记忆。
     def reflect_risk_manager(self, current_state, returns_losses, risk_manager_memory):
         """Reflect on risk manager's decision and update memory."""
         situation = self._extract_current_situation(current_state)

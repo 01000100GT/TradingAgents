@@ -1,3 +1,7 @@
+# googlenews_utils.py
+#
+# 该文件包含用于从 Google News 抓取新闻数据的工具函数。
+# 它实现了重试逻辑以处理速率限制，并支持按查询和日期范围进行搜索。
 import json
 import requests
 from bs4 import BeautifulSoup
@@ -14,7 +18,13 @@ from tenacity import (
 
 
 def is_rate_limited(response):
-    """Check if the response indicates rate limiting (status code 429)"""
+    """
+    检查响应是否指示了速率限制（状态码 429）。
+    Args:
+        response: HTTP 响应对象。
+    Returns:
+        bool: 如果响应状态码为 429，则为 True，否则为 False。
+    """
     return response.status_code == 429
 
 
@@ -24,8 +34,16 @@ def is_rate_limited(response):
     stop=stop_after_attempt(5),
 )
 def make_request(url, headers):
-    """Make a request with retry logic for rate limiting"""
-    # Random delay before each request to avoid detection
+    """
+    使用重试逻辑进行请求，以处理速率限制。
+    在每次请求前添加随机延迟以避免检测。
+    Args:
+        url (str): 请求的 URL。
+        headers (dict): 请求头。
+    Returns:
+        requests.Response: HTTP 响应对象。
+    """
+    # 每次请求前随机延迟以避免检测
     time.sleep(random.uniform(2, 6))
     response = requests.get(url, headers=headers)
     return response
@@ -33,10 +51,13 @@ def make_request(url, headers):
 
 def getNewsData(query, start_date, end_date):
     """
-    Scrape Google News search results for a given query and date range.
-    query: str - search query
-    start_date: str - start date in the format yyyy-mm-dd or mm/dd/yyyy
-    end_date: str - end date in the format yyyy-mm-dd or mm/dd/yyyy
+    抓取给定查询和日期范围的 Google 新闻搜索结果。
+    Args:
+        query (str): 搜索查询字符串。
+        start_date (str): 开始日期，格式为 YYYY-MM-DD 或 MM/DD/YYYY。
+        end_date (str): 结束日期，格式为 YYYY-MM-DD 或 MM/DD/YYYY。
+    Returns:
+        list: 包含新闻结果字典的列表。
     """
     if "-" in start_date:
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
@@ -69,7 +90,7 @@ def getNewsData(query, start_date, end_date):
             results_on_page = soup.select("div.SoaBEf")
 
             if not results_on_page:
-                break  # No more results found
+                break  # 未找到更多结果
 
             for el in results_on_page:
                 try:
@@ -88,13 +109,13 @@ def getNewsData(query, start_date, end_date):
                         }
                     )
                 except Exception as e:
-                    print(f"Error processing result: {e}")
-                    # If one of the fields is not found, skip this result
+                    print(f"处理结果时出错: {e}")
+                    # 如果其中一个字段未找到，则跳过此结果
                     continue
 
-            # Update the progress bar with the current count of results scraped
+            # 使用当前抓取的结果数量更新进度条
 
-            # Check for the "Next" link (pagination)
+            # 检查"下一页"链接（分页）
             next_link = soup.find("a", id="pnnext")
             if not next_link:
                 break
@@ -102,7 +123,7 @@ def getNewsData(query, start_date, end_date):
             page += 1
 
         except Exception as e:
-            print(f"Failed after multiple retries: {e}")
+            print(f"多次重试后失败: {e}")
             break
 
     return news_results
