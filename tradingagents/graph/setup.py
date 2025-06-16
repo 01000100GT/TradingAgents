@@ -8,7 +8,7 @@ from langgraph.prebuilt import ToolNode
 
 from tradingagents.agents import *
 from tradingagents.agents.utils.agent_states import AgentState
-from tradingagents.agents.utils.agent_utils import Toolkit
+from tradingagents.agents.utils.agent_utils import Toolkit, create_chat_openai
 
 from .conditional_logic import ConditionalLogic
 
@@ -22,8 +22,8 @@ class GraphSetup:
 
     def __init__(
         self,
-        quick_thinking_llm: ChatOpenAI,
-        deep_thinking_llm: ChatOpenAI,
+        quick_thinking_llm_or_config,
+        deep_thinking_llm_or_config,
         toolkit: Toolkit,
         tool_nodes: Dict[str, ToolNode],
         bull_memory,
@@ -32,15 +32,24 @@ class GraphSetup:
         invest_judge_memory,
         risk_manager_memory,
         conditional_logic: ConditionalLogic,
+        config=None,
     ):
         """
         初始化所需组件。
         Initialize with required components.
         """
-        # quick_thinking_llm: 快速思考LLM
-        self.quick_thinking_llm = quick_thinking_llm
-        # deep_thinking_llm: 深度思考LLM
-        self.deep_thinking_llm = deep_thinking_llm
+        # 处理LLM参数，支持直接传入LLM实例或配置
+        if isinstance(quick_thinking_llm_or_config, ChatOpenAI):
+            self.quick_thinking_llm = quick_thinking_llm_or_config
+        else:
+            config = quick_thinking_llm_or_config
+            self.quick_thinking_llm = create_chat_openai(config, temperature=0.1)
+            
+        if isinstance(deep_thinking_llm_or_config, ChatOpenAI):
+            self.deep_thinking_llm = deep_thinking_llm_or_config
+        else:
+            config = deep_thinking_llm_or_config
+            self.deep_thinking_llm = create_chat_openai(config, temperature=0.7)
         # toolkit: 工具包
         self.toolkit = toolkit
         # tool_nodes: 工具节点

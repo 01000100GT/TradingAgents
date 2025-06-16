@@ -11,10 +11,64 @@ import functools
 import pandas as pd
 import os
 from dateutil.relativedelta import relativedelta
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 import tradingagents.dataflows.interface as interface
 from tradingagents.default_config import DEFAULT_CONFIG
 
+
+# 创建ChatOpenAI模型实例
+def create_chat_openai(config, model_name=None, temperature=0.7):
+    """
+    根据配置创建ChatOpenAI模型实例
+    Args:
+        config: 配置字典
+        model_name: 模型名称，如果为None则使用配置中的默认模型
+        temperature: 温度参数
+    Returns:
+        ChatOpenAI实例
+    """
+    model_config = config.get("model_config", {})
+    
+    # 构建ChatOpenAI参数
+    chat_params = {
+        "model": model_name or model_config.get("model", "gpt-4o-mini"),
+        "temperature": temperature,
+    }
+    
+    # 添加base_url和api_key（如果存在）
+    if model_config.get("base_url"):
+        chat_params["base_url"] = model_config["base_url"]
+    if model_config.get("api_key"):
+        chat_params["api_key"] = model_config["api_key"]
+    
+    return ChatOpenAI(**chat_params)
+
+# 创建OpenAI嵌入模型实例
+def create_openai_embeddings(config):
+    """
+    根据配置创建OpenAI嵌入模型实例
+    Args:
+        config: 配置字典
+    Returns:
+        OpenAIEmbeddings实例
+    """
+    model_config = config.get("model_config", {})
+    
+    # 构建OpenAIEmbeddings参数
+    embedding_params = {
+        "model": config.get("embedding_model", "text-embedding-3-small"),
+    }
+    
+    # 添加base_url和api_key（如果存在）
+    embedding_base_url = config.get("embedding_base_url") or model_config.get("base_url")
+    embedding_api_key = config.get("embedding_api_key") or model_config.get("api_key")
+    
+    if embedding_base_url:
+        embedding_params["base_url"] = embedding_base_url
+    if embedding_api_key:
+        embedding_params["api_key"] = embedding_api_key
+    
+    return OpenAIEmbeddings(**embedding_params)
 
 # 创建消息删除函数
 def create_msg_delete():

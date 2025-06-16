@@ -2,6 +2,7 @@
 # 该文件负责处理交易信号，提取可操作的决策。
 
 from langchain_openai import ChatOpenAI
+from tradingagents.agents.utils.agent_utils import create_chat_openai
 
 
 class SignalProcessor:
@@ -11,13 +12,18 @@ class SignalProcessor:
     Processes trading signals to extract actionable decisions.
     """
 
-    def __init__(self, quick_thinking_llm: ChatOpenAI):
+    def __init__(self, quick_thinking_llm_or_config, config=None):
         """
         使用LLM进行处理初始化。
         Initialize with an LLM for processing.
         """
-        # quick_thinking_llm: 快速思考LLM
-        self.quick_thinking_llm = quick_thinking_llm
+        # 处理LLM参数，支持直接传入LLM实例或配置
+        if isinstance(quick_thinking_llm_or_config, ChatOpenAI):
+            self.quick_thinking_llm = quick_thinking_llm_or_config
+        else:
+            # 如果传入的是配置，则创建LLM实例
+            config = quick_thinking_llm_or_config
+            self.quick_thinking_llm = create_chat_openai(config, temperature=0.1)
 
     def process_signal(self, full_signal: str) -> str:
         """

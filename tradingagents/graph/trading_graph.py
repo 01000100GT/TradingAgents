@@ -7,7 +7,7 @@ import json
 from datetime import date
 from typing import Dict, Any, Tuple, List, Optional
 
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langgraph.prebuilt import ToolNode
 
 from tradingagents.agents import *
@@ -18,6 +18,7 @@ from tradingagents.agents.utils.agent_states import (
     InvestDebateState,
     RiskDebateState,
 )
+from tradingagents.agents.utils.agent_utils import create_chat_openai, create_openai_embeddings
 from tradingagents.dataflows.interface import set_config
 
 from .conditional_logic import ConditionalLogic
@@ -65,14 +66,24 @@ class TradingAgentsGraph:
             exist_ok=True,
         )
 
-        # Initialize LLMs
-        # 初始化LLM
+        # Initialize LLMs using config
+        # 使用配置初始化LLM
         # deep_thinking_llm: 深度思考LLM
-        self.deep_thinking_llm = ChatOpenAI(model=self.config["deep_think_llm"])
-        # quick_thinking_llm: 快速思考LLM
-        self.quick_thinking_llm = ChatOpenAI(
-            model=self.config["quick_think_llm"], temperature=0.1
+        self.deep_thinking_llm = create_chat_openai(
+            self.config, 
+            model_name=self.config.get("deep_think_llm"),
+            temperature=0.7
         )
+        # quick_thinking_llm: 快速思考LLM
+        self.quick_thinking_llm = create_chat_openai(
+            self.config,
+            model_name=self.config.get("quick_think_llm"), 
+            temperature=0.1
+        )
+        
+        # Initialize embedding model
+        # 初始化嵌入模型
+        self.embeddings = create_openai_embeddings(self.config)
         # toolkit: 工具包
         self.toolkit = Toolkit(config=self.config)
 
@@ -99,8 +110,8 @@ class TradingAgentsGraph:
         self.conditional_logic = ConditionalLogic()
         # graph_setup: 图配置
         self.graph_setup = GraphSetup(
-            self.quick_thinking_llm,
-            self.deep_thinking_llm,
+            self.config,  # 传入配置而不是LLM实例
+            self.config,  # 传入配置而不是LLM实例
             self.toolkit,
             self.tool_nodes,
             self.bull_memory,
@@ -109,14 +120,15 @@ class TradingAgentsGraph:
             self.invest_judge_memory,
             self.risk_manager_memory,
             self.conditional_logic,
+            self.config,
         )
 
         # propagator: 传播器
         self.propagator = Propagator()
         # reflector: 反射器
-        self.reflector = Reflector(self.quick_thinking_llm)
+        self.reflector = Reflector(self.config)  # 传入配置
         # signal_processor: 信号处理器
-        self.signal_processor = SignalProcessor(self.quick_thinking_llm)
+        self.signal_processor = SignalProcessor(self.config)  # 传入配置
 
         # State tracking
         # 状态跟踪

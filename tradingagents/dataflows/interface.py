@@ -842,7 +842,12 @@ def get_stock_news_openai(ticker, curr_date):
     返回:
         str: 社交媒体新闻报告。
     """
-    client = OpenAI()
+    config = get_config()
+    model_config = config.get("model_config", {})
+    client = OpenAI(
+        base_url=model_config.get("base_url"),
+        api_key=model_config.get("api_key")
+    )
 
     response = client.responses.create(
         model="gpt-4.1-mini",
@@ -885,7 +890,12 @@ def get_global_news_openai(curr_date):
     返回:
         str: 全球或宏观经济新闻报告。
     """
-    client = OpenAI()
+    config = get_config()
+    model_config = config.get("model_config", {})
+    client = OpenAI(
+        base_url=model_config.get("base_url"),
+        api_key=model_config.get("api_key")
+    )
 
     response = client.responses.create(
         model="gpt-4.1-mini",
@@ -929,7 +939,12 @@ def get_fundamentals_openai(ticker, curr_date):
     返回:
         str: 基本面讨论报告。
     """
-    client = OpenAI()
+    config = get_config()
+    model_config = config.get("model_config", {})
+    client = OpenAI(
+        base_url=model_config.get("base_url"),
+        api_key=model_config.get("api_key")
+    )
 
     response = client.responses.create(
         model="gpt-4.1-mini",

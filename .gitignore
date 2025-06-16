@@ -21,3 +21,6 @@ uv.lock
 # OS
 .DS_Store
 Thumbs.db
+
+# 模型配置
+conf.yaml

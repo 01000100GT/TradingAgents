@@ -4,21 +4,33 @@ import chromadb
 from chromadb.config import Settings
 from openai import OpenAI
 import numpy as np
+from ...dataflows.config import get_config
 
 
 # 金融情景记忆类
 class FinancialSituationMemory:
     # 初始化方法
     def __init__(self, name):
-        self.client = OpenAI()
+        # 获取配置
+        config = get_config()
+        model_config = config.get("model_config", {})
+        
+        # 使用配置初始化OpenAI客户端
+        self.client = OpenAI(
+            base_url=model_config.get("base_url"),
+            api_key=model_config.get("api_key")
+        )
         self.chroma_client = chromadb.Client(Settings(allow_reset=True))
         self.situation_collection = self.chroma_client.create_collection(name=name)
 
     # 获取文本的嵌入向量
     def get_embedding(self, text):
         """Get OpenAI embedding for a text"""
+        config = get_config()
+        embedding_model = config.get("embedding_model", "text-embedding-ada-002")
+        
         response = self.client.embeddings.create(
-            model="text-embedding-ada-002", input=text
+            model=embedding_model, input=text
         )
         return response.data[0].embedding
 

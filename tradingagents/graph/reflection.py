@@ -3,16 +3,22 @@
 
 from typing import Dict, Any
 from langchain_openai import ChatOpenAI
+from tradingagents.agents.utils.agent_utils import create_chat_openai
 
 
 # 反思器类：处理决策反思和内存更新。
 class Reflector:
     """Handles reflection on decisions and updating memory."""
 
-    # 初始化反思器，传入一个快速思考的 LLM。
-    def __init__(self, quick_thinking_llm: ChatOpenAI):
-        """Initialize the reflector with an LLM."""
-        self.quick_thinking_llm = quick_thinking_llm
+    # 初始化反思器，传入一个快速思考的 LLM 或配置。
+    def __init__(self, quick_thinking_llm_or_config, config=None):
+        """Initialize the reflector with an LLM or config."""
+        if isinstance(quick_thinking_llm_or_config, ChatOpenAI):
+            self.quick_thinking_llm = quick_thinking_llm_or_config
+        else:
+            # 如果传入的是配置，则创建LLM实例
+            config = quick_thinking_llm_or_config
+            self.quick_thinking_llm = create_chat_openai(config, temperature=0.1)
         self.reflection_system_prompt = self._get_reflection_prompt()
 
     # 获取用于反思的系统提示。

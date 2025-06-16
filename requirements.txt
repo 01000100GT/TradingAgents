@@ -25,3 +25,4 @@ questionary
 typer
 pydantic
 tenacity
+PyYAML
