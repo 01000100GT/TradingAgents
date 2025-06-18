@@ -25,8 +25,8 @@ def create_fundamentals_analyst(llm, toolkit):
 
         # 系统消息，定义分析师的角色和任务
         system_message = (
-            "You are a researcher tasked with analyzing fundamental information over the past week about a company. Please write a comprehensive report of the company's fundamental information such as financial documents, company profile, basic company financials, company financial history, insider sentiment and insider transactions to gain a full view of the company's fundamental information to inform traders. Make sure to include as much detail as possible. Do not simply state the trends are mixed, provide detailed and finegrained analysis and insights that may help traders make decisions."
-            + " Make sure to append a Makrdown table at the end of the report to organize key points in the report, organized and easy to read.",
+            "您是一位研究员，负责分析公司过去一周的基本面信息。请撰写一份关于公司基本面信息的综合报告，包括财务文件、公司概况、基本财务数据、公司财务历史、内部人士情绪和内部人士交易等，以全面了解公司的基本面信息，为交易员提供决策依据。请务必包含尽可能详细的信息。不要简单地说趋势混合，而是提供详细和细致的分析和见解，帮助交易员做出决策。"
+            + " 请确保在报告末尾附上一个Markdown表格来整理报告中的要点，使其组织清晰、易于阅读。",
         )
 
         # 创建聊天提示模板
@@ -34,14 +34,14 @@ def create_fundamentals_analyst(llm, toolkit):
             [
                 (
                     "system",
-                    "You are a helpful AI assistant, collaborating with other assistants."
-                    " Use the provided tools to progress towards answering the question."
-                    " If you are unable to fully answer, that's OK; another assistant with different tools"
-                    " will help where you left off. Execute what you can to make progress."
-                    " If you or any other assistant has the FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL** or deliverable,"
-                    " prefix your response with FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL** so the team knows to stop."
-                    " You have access to the following tools: {tool_names}.\n{system_message}"
-                    "For your reference, the current date is {current_date}. The company we want to look at is {ticker}",
+                    "您是一位有用的AI助手，与其他助手协作。"
+                    " 使用提供的工具来回答问题。"
+                    " 如果您无法完全回答，没关系；拥有不同工具的其他助手"
+                    " 会在您停下的地方继续帮助。请尽力取得进展。"
+                    " 如果您或任何其他助手有最终交易建议：**买入/持有/卖出**或可交付成果，"
+                    " 请在回复前加上'最终交易建议：**买入/持有/卖出**'，以便团队知道何时停止。"
+                    " 您可以使用以下工具：{tool_names}。\n{system_message}"
+                    "供您参考，当前日期是{current_date}。我们要分析的公司是{ticker}",
                 ),
                 MessagesPlaceholder(variable_name="messages"),
             ]

@@ -74,7 +74,7 @@ def create_openai_embeddings(config):
 def create_msg_delete():
     # 删除消息，防止消息历史溢出
     def delete_messages(state):
-        """To prevent message history from overflowing, regularly clear message history after a stage of the pipeline is done"""
+        """为防止消息历史溢出，在流水线的某个阶段完成后定期清除消息历史"""
         messages = state["messages"]
         return {"messages": [RemoveMessage(id=m.id) for m in messages]}
 
@@ -88,13 +88,13 @@ class Toolkit:
     @classmethod
     # 更新类级别的配置
     def update_config(cls, config):
-        """Update the class-level configuration."""
+        """更新类级别的配置。"""
         cls._config.update(config)
 
     @property
     # 访问配置
     def config(self):
-        """Access the configuration."""
+        """访问配置。"""
         return self._config
 
     # 初始化方法
@@ -106,14 +106,14 @@ class Toolkit:
     @tool
     # 获取 Reddit 新闻
     def get_reddit_news(
-        curr_date: Annotated[str, "Date you want to get news for in yyyy-mm-dd format"],
+        curr_date: Annotated[str, "您想要获取新闻的日期，格式为yyyy-mm-dd"],
     ) -> str:
         """
-        Retrieve global news from Reddit within a specified time frame.
+        在指定时间范围内从Reddit检索全球新闻。
         Args:
-            curr_date (str): Date you want to get news for in yyyy-mm-dd format
+            curr_date (str): 您想要获取新闻的日期，格式为yyyy-mm-dd
         Returns:
-            str: A formatted dataframe containing the latest global news from Reddit in the specified time frame.
+            str: 包含指定时间范围内来自Reddit的最新全球新闻的格式化数据框。
         """
 
         global_news_result = interface.get_reddit_global_news(curr_date, 7, 5)
@@ -126,19 +126,19 @@ class Toolkit:
     def get_finnhub_news(
         ticker: Annotated[
             str,
-            "Search query of a company, e.g. 'AAPL, TSM, etc.",
+            "公司的搜索查询，例如 'AAPL, TSM, 等'",
         ],
-        start_date: Annotated[str, "Start date in yyyy-mm-dd format"],
-        end_date: Annotated[str, "End date in yyyy-mm-dd format"],
+        start_date: Annotated[str, "开始日期，格式为yyyy-mm-dd"],
+        end_date: Annotated[str, "结束日期，格式为yyyy-mm-dd"],
     ):
         """
-        Retrieve the latest news about a given stock from Finnhub within a date range
+        在日期范围内从Finnhub检索关于给定股票的最新新闻
         Args:
-            ticker (str): Ticker of a company. e.g. AAPL, TSM
-            start_date (str): Start date in yyyy-mm-dd format
-            end_date (str): End date in yyyy-mm-dd format
+            ticker (str): 公司的股票代码。例如 AAPL, TSM
+            start_date (str): 开始日期，格式为yyyy-mm-dd
+            end_date (str): 结束日期，格式为yyyy-mm-dd
         Returns:
-            str: A formatted dataframe containing news about the company within the date range from start_date to end_date
+            str: 包含从start_date到end_date日期范围内公司新闻的格式化数据框
         """
 
         end_date_str = end_date
@@ -159,17 +159,17 @@ class Toolkit:
     def get_reddit_stock_info(
         ticker: Annotated[
             str,
-            "Ticker of a company. e.g. AAPL, TSM",
+            "公司的股票代码。例如 AAPL, TSM",
         ],
-        curr_date: Annotated[str, "Current date you want to get news for"],
+        curr_date: Annotated[str, "您想要获取新闻的当前日期"],
     ) -> str:
         """
-        Retrieve the latest news about a given stock from Reddit, given the current date.
+        根据当前日期从Reddit检索关于给定股票的最新新闻。
         Args:
-            ticker (str): Ticker of a company. e.g. AAPL, TSM
-            curr_date (str): current date in yyyy-mm-dd format to get news for
+            ticker (str): 公司的股票代码。例如 AAPL, TSM
+            curr_date (str): 获取新闻的当前日期，格式为yyyy-mm-dd
         Returns:
-            str: A formatted dataframe containing the latest news about the company on the given date
+            str: 包含给定日期公司最新新闻的格式化数据框
         """
 
         stock_news_results = interface.get_reddit_company_news(ticker, curr_date, 7, 5)
@@ -180,18 +180,18 @@ class Toolkit:
     @tool
     # 获取 Yahoo Finance 数据
     def get_YFin_data(
-        symbol: Annotated[str, "ticker symbol of the company"],
-        start_date: Annotated[str, "Start date in yyyy-mm-dd format"],
-        end_date: Annotated[str, "Start date in yyyy-mm-dd format"],
+        symbol: Annotated[str, "公司的股票代码"],
+        start_date: Annotated[str, "开始日期，格式为yyyy-mm-dd"],
+        end_date: Annotated[str, "结束日期，格式为yyyy-mm-dd"],
     ) -> str:
         """
-        Retrieve the stock price data for a given ticker symbol from Yahoo Finance.
+        从Yahoo Finance检索给定股票代码的股价数据。
         Args:
-            symbol (str): Ticker symbol of the company, e.g. AAPL, TSM
-            start_date (str): Start date in yyyy-mm-dd format
-            end_date (str): End date in yyyy-mm-dd format
+            symbol (str): 公司的股票代码，例如 AAPL, TSM
+            start_date (str): 开始日期，格式为yyyy-mm-dd
+            end_date (str): 结束日期，格式为yyyy-mm-dd
         Returns:
-            str: A formatted dataframe containing the stock price data for the specified ticker symbol in the specified date range.
+            str: 包含指定日期范围内指定股票代码股价数据的格式化数据框。
         """
 
         result_data = interface.get_YFin_data(symbol, start_date, end_date)
@@ -202,21 +202,21 @@ class Toolkit:
     @tool
     # 在线获取 Yahoo Finance 数据
     def get_YFin_data_online(
-        symbol: Annotated[str, "ticker symbol of the company"],
-        start_date: Annotated[str, "Start date in yyyy-mm-dd format"],
-        end_date: Annotated[str, "Start date in yyyy-mm-dd format"],
+        symbol: Annotated[str, "公司的股票代码"],
+        start_date: Annotated[str, "开始日期，格式为yyyy-mm-dd"],
+        end_date: Annotated[str, "结束日期，格式为yyyy-mm-dd"],
     ) -> str:
         """
-        Retrieve the stock price data for a given ticker symbol from Yahoo Finance.
+        从Yahoo Finance检索给定股票代码的股价数据。
         Args:
-            symbol (str): Ticker symbol of the company, e.g. AAPL, TSM
-            start_date (str): Start date in yyyy-mm-dd format
-            end_date (str): End date in yyyy-mm-dd format
+            symbol (str): 公司的股票代码，例如 AAPL, TSM
+            start_date (str): 开始日期，格式为yyyy-mm-dd
+            end_date (str): 结束日期，格式为yyyy-mm-dd
         Returns:
-            str: A formatted dataframe containing the stock price data for the specified ticker symbol in the specified date range.
+            str: 包含指定日期范围内指定股票代码股价数据的格式化数据框。
         """
 
-        result_data = interface.get_YFin_data_online(symbol, start_date, end_date)
+        result_data = interface.get_YFin_data_online(symbol, stget_stockstats_indicators_reportart_date, end_date)
 
         return result_data
 
@@ -224,24 +224,24 @@ class Toolkit:
     @tool
     # 获取股票统计指标报告
     def get_stockstats_indicators_report(
-        symbol: Annotated[str, "ticker symbol of the company"],
+        symbol: Annotated[str, "公司的股票代码"],
         indicator: Annotated[
-            str, "technical indicator to get the analysis and report of"
+            str, "要获取分析和报告的技术指标"
         ],
         curr_date: Annotated[
-            str, "The current trading date you are trading on, YYYY-mm-dd"
+            str, "您正在交易的当前交易日期，格式为YYYY-mm-dd"
         ],
-        look_back_days: Annotated[int, "how many days to look back"] = 30,
+        look_back_days: Annotated[int, "回看多少天"] = 30,
     ) -> str:
         """
-        Retrieve stock stats indicators for a given ticker symbol and indicator.
+        检索给定股票代码和指标的股票统计指标。
         Args:
-            symbol (str): Ticker symbol of the company, e.g. AAPL, TSM
-            indicator (str): Technical indicator to get the analysis and report of
-            curr_date (str): The current trading date you are trading on, YYYY-mm-dd
-            look_back_days (int): How many days to look back, default is 30
+            symbol (str): 公司的股票代码，例如 AAPL, TSM
+            indicator (str): 要获取分析和报告的技术指标
+            curr_date (str): 您正在交易的当前交易日期，格式为YYYY-mm-dd
+            look_back_days (int): 回看多少天，默认为30天
         Returns:
-            str: A formatted dataframe containing the stock stats indicators for the specified ticker symbol and indicator.
+            str: 包含指定股票代码和指标的股票统计指标的格式化数据框。
         """
 
         result_stockstats = interface.get_stock_stats_indicators_window(
@@ -254,24 +254,24 @@ class Toolkit:
     @tool
     # 在线获取股票统计指标报告
     def get_stockstats_indicators_report_online(
-        symbol: Annotated[str, "ticker symbol of the company"],
+        symbol: Annotated[str, "公司的股票代码"],
         indicator: Annotated[
-            str, "technical indicator to get the analysis and report of"
+            str, "要获取分析和报告的技术指标"
         ],
         curr_date: Annotated[
-            str, "The current trading date you are trading on, YYYY-mm-dd"
+            str, "您正在交易的当前交易日期，格式为YYYY-mm-dd"
         ],
-        look_back_days: Annotated[int, "how many days to look back"] = 30,
+        look_back_days: Annotated[int, "回看多少天"] = 30,
     ) -> str:
         """
-        Retrieve stock stats indicators for a given ticker symbol and indicator.
+        检索给定股票代码和指标的股票统计指标。
         Args:
-            symbol (str): Ticker symbol of the company, e.g. AAPL, TSM
-            indicator (str): Technical indicator to get the analysis and report of
-            curr_date (str): The current trading date you are trading on, YYYY-mm-dd
-            look_back_days (int): How many days to look back, default is 30
+            symbol (str): 公司的股票代码，例如 AAPL, TSM
+            indicator (str): 要获取分析和报告的技术指标
+            curr_date (str): 您正在交易的当前交易日期，格式为YYYY-mm-dd
+            look_back_days (int): 回看多少天，默认为30天
         Returns:
-            str: A formatted dataframe containing the stock stats indicators for the specified ticker symbol and indicator.
+            str: 包含指定股票代码和指标的股票统计指标的格式化数据框。
         """
 
         result_stockstats = interface.get_stock_stats_indicators_window(
@@ -284,19 +284,19 @@ class Toolkit:
     @tool
     # 获取 Finnhub 公司内部人士情绪
     def get_finnhub_company_insider_sentiment(
-        ticker: Annotated[str, "ticker symbol for the company"],
+        ticker: Annotated[str, "公司的股票代码"],
         curr_date: Annotated[
             str,
-            "current date of you are trading at, yyyy-mm-dd",
+            "您正在交易的当前日期，格式为yyyy-mm-dd",
         ],
     ):
         """
-        Retrieve insider sentiment information about a company (retrieved from public SEC information) for the past 30 days
+        检索公司的内部人士情绪信息（从公开的SEC信息中获取），过去30天
         Args:
-            ticker (str): ticker symbol of the company
-            curr_date (str): current date you are trading at, yyyy-mm-dd
+            ticker (str): 公司的股票代码
+            curr_date (str): 您正在交易的当前日期，格式为yyyy-mm-dd
         Returns:
-            str: a report of the sentiment in the past 30 days starting at curr_date
+            str: 从curr_date开始过去30天的情绪报告
         """
 
         data_sentiment = interface.get_finnhub_company_insider_sentiment(
@@ -309,19 +309,19 @@ class Toolkit:
     @tool
     # 获取 Finnhub 公司内部人士交易
     def get_finnhub_company_insider_transactions(
-        ticker: Annotated[str, "ticker symbol"],
+        ticker: Annotated[str, "公司的股票代码"],
         curr_date: Annotated[
             str,
-            "current date you are trading at, yyyy-mm-dd",
+            "您正在交易的当前日期，格式为yyyy-mm-dd",
         ],
     ):
         """
-        Retrieve insider transaction information about a company (retrieved from public SEC information) for the past 30 days
+        检索公司的内部人士交易信息（从公开的SEC信息中获取），过去30天
         Args:
-            ticker (str): ticker symbol of the company
-            curr_date (str): current date you are trading at, yyyy-mm-dd
+            ticker (str): 公司的股票代码
+            curr_date (str): 您正在交易的当前日期，格式为yyyy-mm-dd
         Returns:
-            str: a report of the company's insider transactions/trading information in the past 30 days
+            str: 过去30天公司内部人士交易/买卖信息的报告
         """
 
         data_trans = interface.get_finnhub_company_insider_transactions(
@@ -334,21 +334,21 @@ class Toolkit:
     @tool
     # 获取 Simfin 资产负债表
     def get_simfin_balance_sheet(
-        ticker: Annotated[str, "ticker symbol"],
+        ticker: Annotated[str, "公司的股票代码"],
         freq: Annotated[
             str,
-            "reporting frequency of the company's financial history: annual/quarterly",
+            "公司财务历史的报告频率：年度/季度",
         ],
-        curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
+        curr_date: Annotated[str, "您正在交易的当前日期，格式为yyyy-mm-dd"],
     ):
         """
-        Retrieve the most recent balance sheet of a company
+        检索公司最新的资产负债表
         Args:
-            ticker (str): ticker symbol of the company
-            freq (str): reporting frequency of the company's financial history: annual / quarterly
-            curr_date (str): current date you are trading at, yyyy-mm-dd
+            ticker (str): 公司的股票代码
+            freq (str): 公司财务历史的报告频率：年度/季度
+            curr_date (str): 您正在交易的当前日期，格式为yyyy-mm-dd
         Returns:
-            str: a report of the company's most recent balance sheet
+            str: 公司最新资产负债表的报告
         """
 
         data_balance_sheet = interface.get_simfin_balance_sheet(ticker, freq, curr_date)
@@ -359,21 +359,21 @@ class Toolkit:
     @tool
     # 获取 Simfin 现金流量表
     def get_simfin_cashflow(
-        ticker: Annotated[str, "ticker symbol"],
+        ticker: Annotated[str, "公司的股票代码"],
         freq: Annotated[
             str,
-            "reporting frequency of the company's financial history: annual/quarterly",
+            "公司财务历史的报告频率：年度/季度",
         ],
-        curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
+        curr_date: Annotated[str, "您正在交易的当前日期，格式为yyyy-mm-dd"],
     ):
         """
-        Retrieve the most recent cash flow statement of a company
+        检索公司最新的现金流量表
         Args:
-            ticker (str): ticker symbol of the company
-            freq (str): reporting frequency of the company's financial history: annual / quarterly
-            curr_date (str): current date you are trading at, yyyy-mm-dd
+            ticker (str): 公司的股票代码
+            freq (str): 公司财务历史的报告频率：年度/季度
+            curr_date (str): 您正在交易的当前日期，格式为yyyy-mm-dd
         Returns:
-                str: a report of the company's most recent cash flow statement
+                str: 公司最新现金流量表的报告
         """
 
         data_cashflow = interface.get_simfin_cashflow(ticker, freq, curr_date)
@@ -384,21 +384,21 @@ class Toolkit:
     @tool
     # 获取 Simfin 收入报表
     def get_simfin_income_stmt(
-        ticker: Annotated[str, "ticker symbol"],
+        ticker: Annotated[str, "公司的股票代码"],
         freq: Annotated[
             str,
-            "reporting frequency of the company's financial history: annual/quarterly",
+            "公司财务历史的报告频率：年度/季度",
         ],
-        curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
+        curr_date: Annotated[str, "您正在交易的当前日期，格式为yyyy-mm-dd"],
     ):
         """
-        Retrieve the most recent income statement of a company
+        检索公司最新的收入报表
         Args:
-            ticker (str): ticker symbol of the company
-            freq (str): reporting frequency of the company's financial history: annual / quarterly
-            curr_date (str): current date you are trading at, yyyy-mm-dd
+            ticker (str): 公司的股票代码
+            freq (str): 公司财务历史的报告频率：年度/季度
+            curr_date (str): 您正在交易的当前日期，格式为yyyy-mm-dd
         Returns:
-                str: a report of the company's most recent income statement
+                str: 公司最新收入报表的报告
         """
 
         data_income_stmt = interface.get_simfin_income_statements(
@@ -411,17 +411,17 @@ class Toolkit:
     @tool
     # 获取 Google 新闻
     def get_google_news(
-        query: Annotated[str, "Query to search with"],
-        curr_date: Annotated[str, "Curr date in yyyy-mm-dd format"],
+        query: Annotated[str, "搜索查询"],
+        curr_date: Annotated[str, "当前日期，格式为yyyy-mm-dd"],
     ):
         """
-        Retrieve the latest news from Google News based on a query and date range.
+        根据查询和日期范围从Google News检索最新新闻。
         Args:
-            query (str): Query to search with
-            curr_date (str): Current date in yyyy-mm-dd format
-            look_back_days (int): How many days to look back
+            query (str): 搜索查询
+            curr_date (str): 当前日期，格式为yyyy-mm-dd
+            look_back_days (int): 回看多少天
         Returns:
-            str: A formatted string containing the latest news from Google News based on the query and date range.
+            str: 包含基于查询和日期范围从Google News获取的最新新闻的格式化字符串。
         """
 
         google_news_results = interface.get_google_news(query, curr_date, 7)
@@ -432,16 +432,16 @@ class Toolkit:
     @tool
     # 使用 OpenAI 获取股票新闻
     def get_stock_news_openai(
-        ticker: Annotated[str, "the company's ticker"],
-        curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+        ticker: Annotated[str, "公司的股票代码"],
+        curr_date: Annotated[str, "当前日期，格式为yyyy-mm-dd"],
     ):
         """
-        Retrieve the latest news about a given stock by using OpenAI's news API.
+        使用OpenAI的新闻API检索关于给定股票的最新新闻。
         Args:
-            ticker (str): Ticker of a company. e.g. AAPL, TSM
-            curr_date (str): Current date in yyyy-mm-dd format
+            ticker (str): 公司的股票代码。例如 AAPL, TSM
+            curr_date (str): 当前日期，格式为yyyy-mm-dd
         Returns:
-            str: A formatted string containing the latest news about the company on the given date.
+            str: 包含给定日期公司最新新闻的格式化字符串。
         """
 
         openai_news_results = interface.get_stock_news_openai(ticker, curr_date)
@@ -452,14 +452,14 @@ class Toolkit:
     @tool
     # 使用 OpenAI 获取全球新闻
     def get_global_news_openai(
-        curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+        curr_date: Annotated[str, "当前日期，格式为yyyy-mm-dd"],
     ):
         """
-        Retrieve the latest macroeconomics news on a given date using OpenAI's macroeconomics news API.
+        使用OpenAI的宏观经济新闻API检索给定日期的最新宏观经济新闻。
         Args:
-            curr_date (str): Current date in yyyy-mm-dd format
+            curr_date (str): 当前日期，格式为yyyy-mm-dd
         Returns:
-            str: A formatted string containing the latest macroeconomic news on the given date.
+            str: 包含给定日期最新宏观经济新闻的格式化字符串。
         """
 
         openai_news_results = interface.get_global_news_openai(curr_date)
@@ -470,16 +470,16 @@ class Toolkit:
     @tool
     # 使用 OpenAI 获取基本面信息
     def get_fundamentals_openai(
-        ticker: Annotated[str, "the company's ticker"],
-        curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+        ticker: Annotated[str, "公司的股票代码"],
+        curr_date: Annotated[str, "当前日期，格式为yyyy-mm-dd"],
     ):
         """
-        Retrieve the latest fundamental information about a given stock on a given date by using OpenAI's news API.
+        使用OpenAI的新闻API检索给定日期关于给定股票的最新基本面信息。
         Args:
-            ticker (str): Ticker of a company. e.g. AAPL, TSM
-            curr_date (str): Current date in yyyy-mm-dd format
+            ticker (str): 公司的股票代码。例如 AAPL, TSM
+            curr_date (str): 当前日期，格式为yyyy-mm-dd
         Returns:
-            str: A formatted string containing the latest fundamental information about the company on the given date.
+            str: 包含给定日期公司最新基本面信息的格式化字符串。
         """
 
         openai_fundamentals_results = interface.get_fundamentals_openai(
