@@ -486,6 +486,9 @@ def get_user_selections():
     # 选择深层思考代理
     selected_deep_thinker = select_deep_thinking_agent()
 
+    # research_depth：辩论次数配置（max_debate_rounds，max_risk_discuss_rounds）
+    # shallow_thinker：快思考配置quick_think_llm
+    # deep_thinker：深度思考配置deep_think_llm
     return {
         "ticker": selected_ticker,
         "analysis_date": analysis_date,
